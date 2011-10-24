@@ -1,0 +1,121 @@
+set kw(vtkTemp2) [$Application GetMainWindow]
+set kw(vtkTemp87) [$kw(vtkTemp2) GetMainView]
+set kw(vtkTemp1022) [$kw(vtkTemp2) InitializeReadCustom "legacyreader" "/home/mrobins/data/code/new/couette/resultCouette0000002.vtk"]
+$kw(vtkTemp2) ReadFileInformation $kw(vtkTemp1022) "/home/mrobins/data/code/new/couette/resultCouette0000002.vtk"
+$kw(vtkTemp2) FinalizeRead $kw(vtkTemp1022) "/home/mrobins/data/code/new/couette/resultCouette0000002.vtk"
+set kw(vtkTemp1023) [$kw(vtkTemp1022) GetPVWidget {Filename}]
+$kw(vtkTemp1023) SetValue "/home/mrobins/data/code/new/couette/resultCouette0000002.vtk"
+$kw(vtkTemp2) SetCenterOfRotation 0.000000 -0.300000 0.000000
+$kw(vtkTemp2) SetCenterOfRotation 0.000000 -0.300000 0.000000
+set kw(vtkTemp1131) [$kw(vtkTemp2) GetAnimationManager]
+set kw(vtkTemp675) [$kw(vtkTemp1131) GetAnimationScene]
+$kw(vtkTemp675) SetPlayMode 0
+$kw(vtkTemp2) SetCenterOfRotation 0.000000 -0.300000 0.000000
+$kw(vtkTemp2) SetCenterOfRotation 0.000000 -0.300000 0.000000
+$kw(vtkTemp675) SetPlayMode 0
+$kw(vtkTemp2) SetCenterOfRotation 0.000000 -0.300000 0.000000
+$kw(vtkTemp2) SetCenterOfRotation 0.000000 -0.300000 0.000000
+$kw(vtkTemp675) SetPlayMode 0
+set kw(vtkTemp1132) [$kw(vtkTemp2) CreatePVSource Glyph]
+set kw(vtkTemp1133) [$kw(vtkTemp1132) GetPVWidget {Input}]
+$kw(vtkTemp1133) SetCurrentValue $kw(vtkTemp1022)
+set kw(vtkTemp1136) [$kw(vtkTemp1132) GetPVWidget {Glyph}]
+set kw(vtkTemp954) [$kw(vtkTemp2) GetPVSource GlyphSources Sphere0]
+$kw(vtkTemp1136) SetCurrentValue $kw(vtkTemp954)
+set kw(vtkTemp1148) [$kw(vtkTemp1132) GetPVWidget {OrientScale}]
+$kw(vtkTemp1148) SetOrientMode {Off}
+$kw(vtkTemp1148) SetScaleMode {Data Scaling Off}
+$kw(vtkTemp1148) SetScalars {dens}
+$kw(vtkTemp1148) SetVectors {v}
+$kw(vtkTemp1148) SetScaleFactor 0.011017
+set kw(vtkTemp1151) [$kw(vtkTemp1132) GetPVWidget {Max Glyphs}]
+$kw(vtkTemp1151) SetValue 5000
+set kw(vtkTemp1156) [$kw(vtkTemp1132) GetPVWidget {MaskPoints}]
+$kw(vtkTemp1156) SetSelectedState 1
+set kw(vtkTemp1159) [$kw(vtkTemp1132) GetPVWidget {RandomMask}]
+$kw(vtkTemp1159) SetSelectedState 1
+$kw(vtkTemp1132) AcceptCallback
+set kw(vtkTemp1192) [$kw(vtkTemp2) InitializeReadCustom "legacyreader" "/home/mrobins/data/code/new/couette/resultCouetteGrid0000002.vtk"]
+$kw(vtkTemp2) ReadFileInformation $kw(vtkTemp1192) "/home/mrobins/data/code/new/couette/resultCouetteGrid0000002.vtk"
+$kw(vtkTemp2) FinalizeRead $kw(vtkTemp1192) "/home/mrobins/data/code/new/couette/resultCouetteGrid0000002.vtk"
+set kw(vtkTemp1193) [$kw(vtkTemp1192) GetPVWidget {Filename}]
+$kw(vtkTemp1193) SetValue "/home/mrobins/data/code/new/couette/resultCouetteGrid0000002.vtk"
+$kw(vtkTemp675) SetPlayMode 0
+$kw(vtkTemp675) SetPlayMode 0
+$kw(vtkTemp675) SetPlayMode 0
+$kw(vtkTemp2) ShowAnimationPanes
+$kw(vtkTemp675) Stop
+$kw(vtkTemp675) Play
+$kw(vtkTemp675) Play
+$kw(vtkTemp675) Play
+$kw(vtkTemp675) Play
+$kw(vtkTemp675) Play
+$kw(vtkTemp675) Stop
+$kw(vtkTemp675) Play
+$kw(vtkTemp675) Stop
+$kw(vtkTemp675) Play
+$kw(vtkTemp675) SetAnimationTimeWithTrace 19.000000
+$kw(vtkTemp675) SetAnimationTimeWithTrace 0.000000
+set kw(vtkTemp370) [$kw(vtkTemp87) GetCornerAnnotation]
+$kw(vtkTemp370) SetVisibility 1
+$kw(vtkTemp370) SetCornerText "test" 2
+$kw(vtkTemp370) SetCornerText "other test" 3
+$kw(vtkTemp87) SetOrientationAxesVisibility 0
+$kw(vtkTemp87) SetOrientationAxesVisibility 1
+$kw(vtkTemp87) SetOrientationAxesVisibility 0
+$kw(vtkTemp87) SetOrientationAxesVisibility 1
+$kw(vtkTemp87) SetOrientationAxesInteractivity 1
+$kw(vtkTemp87) SetCameraState 0.000 -0.300 2.267  0.000 -0.300 0.000  0.000 1.000 0.000
+$kw(vtkTemp87) SetCameraState 0.000 -0.300 2.267  0.000 -0.300 0.000  0.000 1.000 0.000
+$kw(vtkTemp87) SetCameraState 0.000 -0.300 2.267  0.000 -0.300 0.000  0.000 1.000 0.000
+$kw(vtkTemp87) SetCameraState 0.000 -0.300 2.267  0.000 -0.300 0.000  0.000 1.000 0.000
+$kw(vtkTemp87) SetCameraState 0.000 -0.300 2.267  0.000 -0.300 0.000  0.000 1.000 0.000
+$kw(vtkTemp87) SetCameraState 0.000 -0.300 2.267  0.000 -0.300 0.000  0.000 1.000 0.000
+$kw(vtkTemp87) SetCameraState 0.000 -0.300 2.267  0.000 -0.300 0.000  0.000 1.000 0.000
+$kw(vtkTemp87) SetCameraState 0.000 -0.300 2.267  0.000 -0.300 0.000  0.000 1.000 0.000
+$kw(vtkTemp87) SetCameraState 0.000 -0.300 2.267  0.000 -0.300 0.000  0.000 1.000 0.000
+$kw(vtkTemp87) SetCameraState 0.000 -0.300 2.267  0.000 -0.300 0.000  0.000 1.000 0.000
+$kw(vtkTemp87) SetOrientationAxesInteractivity 0
+$kw(vtkTemp2) ShowAnimationPanes
+$kw(vtkTemp2) ShowCurrentSourcePropertiesCallback
+$kw(vtkTemp2) SetCurrentPVSourceCallback $kw(vtkTemp1132)
+$kw(vtkTemp2) SetCurrentPVSourceCallback $kw(vtkTemp1022)
+set kw(vtkTemp1236) [$kw(vtkTemp2) CreatePVSource Pick]
+$kw(vtkTemp87) SetCameraState 0.808 1.353 1.323  -0.000 -0.300 -0.000  -0.384 0.684 -0.620
+$kw(vtkTemp87) SetCameraState 0.537 -0.438 2.198  -0.000 -0.300 0.000  -0.355 0.924 0.145
+set kw(vtkTemp1256) [$kw(vtkTemp1236) GetPVWidget {PickMethod}]
+set kw(vtkTemp1249) [$kw(vtkTemp1256) GetPVWidget {World Point}]
+$kw(vtkTemp1249) SetPosition 0.000000 -0.300000 0.000000
+$kw(vtkTemp1249) SetVisibility 0
+$kw(vtkTemp1249) SetVisibility 1
+$kw(vtkTemp2) SetCurrentPVSourceCallback {}
+$kw(vtkTemp2) SetCurrentPVSourceCallback {}
+$kw(vtkTemp1236) DeleteCallback
+$kw(vtkTemp2) SetCurrentPVSourceCallback {}
+$kw(vtkTemp2) SetCurrentPVSourceCallback $kw(vtkTemp1022)
+set kw(vtkTemp1272) [$kw(vtkTemp2) CreatePVSource DataAnalysis]
+set kw(vtkTemp1302) [$kw(vtkTemp1272) GetPVWidget {QueryMethod}]
+set kw(vtkTemp1297) [$kw(vtkTemp1302) GetPVWidget {Line}]
+$kw(vtkTemp1297) SetResolution 50
+$kw(vtkTemp1297) SetPoint1 0.000000 -0.500000 0.000000
+$kw(vtkTemp1297) SetPoint2 0.000000 -0.100000 0.000000
+$kw(vtkTemp1297) SetResolution 50
+$kw(vtkTemp1297) SetPoint1 0.000000 -0.500000 0.000000
+$kw(vtkTemp1297) SetPoint2 0.000000 -0.100000 0.000000
+$kw(vtkTemp1297) SetResolution 50
+set kw(vtkTemp1273) [$kw(vtkTemp1272) GetPVWidget {Input}]
+$kw(vtkTemp1273) SetCurrentValue $kw(vtkTemp1022)
+set kw(vtkTemp1290) [$kw(vtkTemp1302) GetPVWidget {Point (Interpolated)}]
+set kw(vtkTemp1291) [$kw(vtkTemp1290) GetRadiusWidget]
+$kw(vtkTemp1291) SetValue 0
+set kw(vtkTemp1292) [$kw(vtkTemp1290) GetNumberOfPointsWidget]
+$kw(vtkTemp1292) SetValue 1
+$kw(vtkTemp1290) SetVisibility 1
+$kw(vtkTemp1290) SetPosition 0 -0.3 0
+$kw(vtkTemp1291) SetValue 0
+$kw(vtkTemp1292) SetValue 1
+$kw(vtkTemp1302) SetCurrentValue {Point (Interpolated)}
+$kw(vtkTemp1290) SetVisibility 1
+$kw(vtkTemp1290) SetPosition 0 -0.3 0
+$kw(vtkTemp1291) SetValue 0
+$kw(vtkTemp1292) SetValue 1

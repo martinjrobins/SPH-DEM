@@ -1,0 +1,37 @@
+set kw(vtkTemp2) [$Application GetMainWindow]
+set kw(vtkTemp76) [$kw(vtkTemp2) GetMainView]
+set kw(vtkTemp1012) [$kw(vtkTemp2) InitializeReadCustom "legacyreader" "/home/mrobins/data/code/new/couette/resultCouette0000002.vtk"]
+$kw(vtkTemp2) ReadFileInformation $kw(vtkTemp1012) "/home/mrobins/data/code/new/couette/resultCouette0000002.vtk"
+$kw(vtkTemp2) FinalizeRead $kw(vtkTemp1012) "/home/mrobins/data/code/new/couette/resultCouette0000002.vtk"
+set kw(vtkTemp1013) [$kw(vtkTemp1012) GetPVWidget {Filename}]
+$kw(vtkTemp1013) SetValue "/home/mrobins/data/code/new/couette/resultCouette0000002.vtk"
+$kw(vtkTemp2) SetCenterOfRotation 0.000000 -0.300000 0.000000
+$kw(vtkTemp2) SetCenterOfRotation 0.000000 -0.300000 0.000000
+set kw(vtkTemp1055) [$kw(vtkTemp2) GetAnimationManager]
+set kw(vtkTemp664) [$kw(vtkTemp1055) GetAnimationScene]
+$kw(vtkTemp664) SetPlayMode 0
+set kw(vtkTemp1056) [$kw(vtkTemp2) CreatePVSource Glyph]
+set kw(vtkTemp1057) [$kw(vtkTemp1056) GetPVWidget {Input}]
+$kw(vtkTemp1057) SetCurrentValue $kw(vtkTemp1012)
+set kw(vtkTemp1060) [$kw(vtkTemp1056) GetPVWidget {Glyph}]
+set kw(vtkTemp943) [$kw(vtkTemp2) GetPVSource GlyphSources Sphere0]
+$kw(vtkTemp1060) SetCurrentValue $kw(vtkTemp943)
+set kw(vtkTemp1072) [$kw(vtkTemp1056) GetPVWidget {OrientScale}]
+$kw(vtkTemp1072) SetOrientMode {Off}
+$kw(vtkTemp1072) SetScaleMode {Data Scaling Off}
+$kw(vtkTemp1072) SetScalars {dens}
+$kw(vtkTemp1072) SetVectors {v}
+$kw(vtkTemp1072) SetScaleFactor 0.011017
+set kw(vtkTemp1075) [$kw(vtkTemp1056) GetPVWidget {Max Glyphs}]
+$kw(vtkTemp1075) SetValue 5000
+set kw(vtkTemp1080) [$kw(vtkTemp1056) GetPVWidget {MaskPoints}]
+$kw(vtkTemp1080) SetSelectedState 1
+set kw(vtkTemp1083) [$kw(vtkTemp1056) GetPVWidget {RandomMask}]
+$kw(vtkTemp1083) SetSelectedState 1
+$kw(vtkTemp1056) AcceptCallback
+set kw(vtkTemp1183) [$kw(vtkTemp2) InitializeReadCustom "legacyreader" "/home/mrobins/data/code/new/couette/resultCouetteGrid0000002.vtk"]
+$kw(vtkTemp2) ReadFileInformation $kw(vtkTemp1183) "/home/mrobins/data/code/new/couette/resultCouetteGrid0000002.vtk"
+$kw(vtkTemp2) FinalizeRead $kw(vtkTemp1183) "/home/mrobins/data/code/new/couette/resultCouetteGrid0000002.vtk"
+set kw(vtkTemp1184) [$kw(vtkTemp1183) GetPVWidget {Filename}]
+$kw(vtkTemp1184) SetValue "/home/mrobins/data/code/new/couette/resultCouetteGrid0000002.vtk"
+$kw(vtkTemp664) SetPlayMode 0

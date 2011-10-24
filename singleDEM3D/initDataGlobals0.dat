@@ -1,0 +1,2 @@
+# OutStep SPHStep Time linMomX linMomY angMom KE eBForce eElast eElastExact eViscF eViscB eFF eTotal wtTotalStep wtTotalForceCalc wtTotalDddtCalc wtTotalReset wtTotalUpdateDomain wtTotalMPI maxV aveDens varDens aveDensFromMass n nSph maxF maxFF rmsFF edElastdt edViscFdt edFFdt
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 -1.07776e+09 -1214.78 -1.07776e+09 -1214.77 6.12351e+06 -1.07776e+09 0 6.34872e-307 6.55002e-307 -0.146177 0 0 0 0 5.25174e-313 0 0 0 -0.146277 2.12499e-314 -0.146072 1.00805e-313 -0.146128 -0.146272 -0.146277 -3.54019e-41 -0.14613

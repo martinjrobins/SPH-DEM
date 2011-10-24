@@ -1,0 +1,64 @@
+#ifndef CUSTOMSIM_H
+#define CUSTOMSIM_H
+
+#include "customSimBase.h"
+#include "customConstants.h"
+#include "dataLL.h"
+#include "vect.h"
+#include <gsl/gsl_rng.h>
+#include <gsl/gsl_randist.h>
+
+#define FKMIN 7
+#define FKMAX 9
+
+class CfMode {
+   public:
+      vectInt k;
+      double c;
+};
+
+inline bool ifCamBoundary(Cparticle &p) {
+   return (p.iam == boundary)&&(p.tag < X);
+}
+
+inline bool ifLeftCamBoundary(Cparticle &p) {
+   return (p.iam == boundary)&&(p.r[0] < 0.5*(XMIN[0]+XMAX[0]))&&(TANC;
+}
+
+inline bool ifRightCamBoundary(Cparticle &p) {
+   return (p.iam == boundary)&&(p.tag < X);
+}
+
+class CcustomSim : public CcustomSimBase {
+   public:
+      CcustomSim(CdataLL *_data,double _time): CcustomSimBase(_data,_time) {
+         frameAng = 0.0;
+      }
+      //void start(double newTime) {}
+      double getFrameAng() { return frameAng; }
+      void beforeMiddle(double newTime);
+      void beforeEnd(double newTime);
+      void setupForcing();
+      void iterateForcing();
+      int leftCamN;
+      int rightCamN;
+      int camN;
+   private:
+      void updateSim(const double newTime);
+      double calcAngVel(double time) {
+         if (time<BOX_GLOB_TIME) {
+            return 0.0;
+         } else {
+            return CAM_ANGVEL;
+         }
+
+      }
+      double frameAng;
+      vector<CfMode> forceModes;
+      gsl_rng *rng;
+      //double time;
+      //CdataLL *data;
+};
+
+
+#endif

@@ -1,0 +1,17 @@
+added ghost boundaries
+--This line, and those below, will be ignored--
+
+M    dataLL.h
+M    cell3D/setup.cpp
+M    cell3D/customSim.cpp
+M    cell3D/customSim.h
+M    cell3D/customConstants.h
+M    misc.cpp
+M    sph.h
+M    dataLL.cpp
+M    sediment3D/customOutput.h
+M    sediment3D/customSim.cpp
+M    sediment3D/customSim.h
+M    sediment3D/customOutput.cpp
+M    sediment3D/customConstants.h
+M    sediment3D/makefile

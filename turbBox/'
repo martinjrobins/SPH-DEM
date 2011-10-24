@@ -1,0 +1,1126 @@
+#ifndef SPH_H
+#define SPH_H
+
+#ifndef PRICE2
+const double PRICE2_ALPHA = 1.5;
+const double PRICE2_BETA = 0.7;
+#endif
+
+const double PRICE2_A = 4.0*(25.0-pow(PRICE2_BETA,2))/(pow(PRICE2_ALPHA,2)*(pow(PRICE2_ALPHA,2)-pow(PRICE2_BETA,2)));
+const double PRICE2_B = (16 + PRICE2_A*pow(PRICE2_ALPHA,4))/pow(PRICE2_BETA,4);
+
+#ifndef MY_CUBIC
+const double MY_CUBIC_ALPHA = 1.0;
+#endif
+
+const double MY_CUBIC_A = -4.0/pow(MY_CUBIC_ALPHA,2);
+
+#ifdef _1D_
+const double WCON = 1;
+const double WCON_HANN = 0.25;
+const double WCON_PRICE2 = 6.0/(2.0*(PRICE2_A*pow(PRICE2_ALPHA,6)+PRICE2_B*pow(PRICE2_BETA,6)+pow(2.0,6)));
+#endif
+#ifdef _2D_
+const double WCON = 15.0/(7.0*PI);
+const double WCON_QUINTIC = 7.0/(478.0*PI);
+const double WCON_HANN = 1.0/(4.0*PI-16.0/PI);
+const double WCON_PRICE2 = 21.0/(PI*(PRICE2_A*pow(PRICE2_ALPHA,7)+PRICE2_B*pow(PRICE2_BETA,7)+pow(2.0,7)));
+const double WCON_MY_CUBIC = 10.0/(PI*(32.0+MY_CUBIC_A*pow(MY_CUBIC_ALPHA,5)));
+const double WCON_WENDLAND = 7.0/(64.0*PI);
+#endif
+#ifdef _3D_
+const double WCON = 3.0/(2.0*PI);
+const double WCON_WENDLAND = 21.0/(256.0*PI);
+#endif
+
+#include "misc.h"
+
+const double BETA_MAX = 1.5;
+const double QIN  = 2.0/3.0;
+const double W1 = 15.0*(2.0/3.0 - 1.0/pow(HFAC,2) + 0.5/pow(HFAC,3))/(7.0*PI);
+const int NEPS = 4;
+const double ALPHA = Nmisc::viscToAlpha(VISCOSITY,H,SPSOUND);
+
+
+#include "vect.h"
+#include "particle.h"
+#include "customConstants.h"
+#include "globalVars.h"
+
+#include <gsl/gsl_multifit.h>
+#include <gsl/gsl_linalg.h>
+#include <blitz/array.h>
+
+
+namespace Nsph {
+#ifdef MY_VAR_RES
+      //inline vect varResDx(vect newDr,vect gradV[NDIM]) { 
+      //   vect newDx;
+         //TODO:this is 2d!
+      //   newDx[0] = newDr[0]*(gradV[0][0]*PSEP/MY_VAR_RES_DV+1) + newDr[1]*gradV[0][1]*PSEP/MY_VAR_RES_DV;
+      //   newDx[1] = newDr[1]*(gradV[1][1]*PSEP/MY_VAR_RES_DV+1) + newDr[0]*gradV[1][0]*PSEP/MY_VAR_RES_DV;
+      //     return newDx;
+      //}
+     inline vect varResDx(vect dx,vect dv,vect gradV[NDIM]) { 
+         vect newDx;
+         for (int i=0;i<NDIM;i++) {
+            newDx[i] = dx[i] + dot(dv,gradV[i])*pow(PSEP/MY_VAR_RES_DV,2);
+         }
+         return newDx;
+      }
+      
+#endif
+
+      inline double F(const double q,const double h) {
+#ifdef WENDLAND
+         return (1/pow(h,NDIM+2))*WCON_WENDLAND*(-4*pow(2-q,3)*(1+2*q) + 2*pow(2-q,4))/q;
+#else
+#ifdef MY_CUBIC
+         if (q<=MY_CUBIC_ALPHA) {
+            return -(1/pow(h,NDIM+2))*WCON_MY_CUBIC*3*(pow(2-q,2) + MY_CUBIC_A*pow(MY_CUBIC_ALPHA-q,2))/q;
+         } else if (q<=2.0) {
+            return -(1/pow(h,NDIM+2))*WCON_MY_CUBIC*3*pow(2-q,2)/q;
+         } else {
+            return 0.0;
+         }
+#else
+#ifdef PRICE2 
+         if (q<=PRICE2_BETA) {
+            return -(1/pow(h,NDIM+2))*WCON_PRICE2*5*(pow(2-q,4) + PRICE2_A*pow(PRICE2_ALPHA-q,4) + PRICE2_B*pow(PRICE2_BETA-q,4))/q;
+         } else if (q<=PRICE2_ALPHA) {
+            return -(1/pow(h,NDIM+2))*WCON_PRICE2*5*(pow(2-q,4) + PRICE2_A*pow(PRICE2_ALPHA-q,4))/q;
+         } else if (q<=2.0) {
+            return -(1/pow(h,NDIM+2))*WCON_PRICE2*5*pow(2-q,4)/q;
+         } else {
+            return 0.0;
+         }
+#else
+#ifdef QUINTIC
+         if (q<=1.0) {
+            return -(1/pow(h,NDIM+2))*WCON_QUINTIC*5*(pow(3-q,4) - 6*pow(2-q,4) + 15*pow(1-q,4))/q;
+         } else if (q<=2.0) {
+            return -(1/pow(h,NDIM+2))*WCON_QUINTIC*5*(pow(3-q,4) - 6*pow(2-q,4))/q;
+         } else if (q<=3.0) {
+            return -(1/pow(h,NDIM+2))*WCON_QUINTIC*5*pow(3-q,4)/q;
+         } else {
+            return 0.0;
+         }
+#else
+#ifdef HANN
+         if (q<=2.0) {
+            return (1/pow(h,NDIM+2))*WCON_HANN*0.5*PI*sin(0.5*PI*(q-2.0))/q;
+         } else {
+            return 0.0;
+         }
+#else
+         if (q<=1.0) {
+             return (1/pow(h,NDIM+2))*WCON*(-2.0+ 1.5*q);
+         }
+         else if (q<=2.0) {
+            return -(1/pow(h,NDIM+2))*3.0*(WCON/6.0)*pow(2.0-q,2)/q;
+         }
+         else {    
+            return 0.0; 
+         }
+#endif
+#endif
+#endif
+#endif
+#endif
+      }
+
+      inline double dKdq(const double q,const double h) {
+#ifdef WENDLAND
+         return WCON_WENDLAND*(-4*pow(2-q,3)*(1+2*q) + 2*pow(2-q,4));
+#else
+#ifdef MY_CUBIC
+         if (q<=MY_CUBIC_ALPHA) {
+            return -WCON_MY_CUBIC*3*(pow(2-q,2) + MY_CUBIC_A*pow(MY_CUBIC_ALPHA-q,2));
+         } else if (q<=2.0) {
+            return -WCON_MY_CUBIC*3*pow(2-q,2);
+         } else {
+            return 0.0;
+         }
+#else
+#ifdef PRICE2 
+         if (q<=PRICE2_BETA) {
+            return -WCON_PRICE2*5*(pow(2-q,4) + PRICE2_A*pow(PRICE2_ALPHA-q,4) + PRICE2_B*pow(PRICE2_BETA-q,4));
+         } else if (q<=PRICE2_ALPHA) {
+            return -WCON_PRICE2*5*(pow(2-q,4) + PRICE2_A*pow(PRICE2_ALPHA-q,4));
+         } else if (q<=2.0) {
+            return -WCON_PRICE2*5*pow(2-q,4);
+         } else {
+            return 0.0;
+         }
+#else
+#ifdef QUINTIC
+         if (q<=1.0) {
+            return -WCON_QUINTIC*5*(pow(3-q,4) - 6*pow(2-q,4) + 15*pow(1-q,4));
+         } else if (q<=2.0) {
+            return -WCON_QUINTIC*5*(pow(3-q,4) - 6*pow(2-q,4));
+         } else if (q<=3.0) {
+            return -WCON_QUINTIC*5*pow(3-q,4);
+         } else {
+            return 0.0;
+         }
+#else
+#ifdef HANN
+         if (q<=2.0) {
+            return WCON_HANN*0.5*PI*sin(0.5*PI*(q-2.0));
+         } else {
+            return 0.0;
+         }
+#else
+         if (q<=1.0) {
+            double q2 = pow(q,2);
+            return WCON*(-2.0*q + 1.5*q2);
+         }
+         else if (q<=2.0) {
+            return -3.0*(WCON/6.0)*pow(2.0-q,2);
+         }
+         else {    
+            return 0.0; 
+         }
+#endif
+#endif
+#endif
+#endif
+#endif
+      }
+      
+      inline double K(const double q,const double h) {
+#ifdef WENDLAND
+         return WCON_WENDLAND*pow(2-q,4)*(1+2*q);
+#else
+#ifdef MY_CUBIC
+         if (q<=MY_CUBIC_ALPHA) {
+            return WCON_MY_CUBIC*(pow(2-q,3) + MY_CUBIC_A*pow(MY_CUBIC_ALPHA-q,3));
+         } else if (q<=2.0) {
+            return WCON_MY_CUBIC*pow(2-q,3);
+         } else {
+            return 0.0;
+         }
+#else
+#ifdef PRICE2 
+         if (q<=PRICE2_BETA) {
+            return WCON_PRICE2*(pow(2-q,5) + PRICE2_A*pow(PRICE2_ALPHA-q,5) + PRICE2_B*pow(PRICE2_BETA-q,5));
+         } else if (q<=PRICE2_ALPHA) {
+            return WCON_PRICE2*(pow(2-q,5) + PRICE2_A*pow(PRICE2_ALPHA-q,5));
+         } else if (q<=2.0) {
+            return WCON_PRICE2*pow(2-q,5);
+         } else {
+            return 0.0;
+         }
+#else
+#ifdef QUINTIC
+         if (q<=1.0) {
+            return WCON_QUINTIC*(pow(3-q,5) - 6*pow(2-q,5) + 15*pow(1-q,5));
+         } else if (q<=2.0) {
+            return WCON_QUINTIC*(pow(3-q,5) - 6*pow(2-q,5));
+         } else if (q<=3.0) {
+            return WCON_QUINTIC*pow(3-q,5);
+         } else {
+            return 0.0;
+         }
+#else
+#ifdef HANN
+         if (q<=2.0) {
+            return WCON_HANN*(1.0-cos(0.5*PI*(q-2.0)));
+         } else {
+            return 0.0;
+         }
+#else
+         if (q<=1.0) {
+            double q2 = pow(q,2);
+            double q3 = q*q2;
+            return WCON*(2.0/3.0 - q2 + 0.5*q3);
+         }
+         else if (q<=2.0) {
+            return (WCON/6.0)*pow(2.0-q,3);
+         }
+         else {    
+            return 0.0;
+         }
+#endif
+#endif
+#endif
+#endif
+#endif
+      }
+
+   inline double K3d(const double q,const double h) {
+#ifdef WENDLAND
+         return (21.0/(256.0*PI))*pow(2-q,4)*(1+2*q);
+#else
+         if (q<=1.0) {
+            double q2 = pow(q,2);
+            double q3 = q*q2;
+            return 3.0*(2.0/3.0 - q2 + 0.5*q3)/(2.0*PI);
+         }
+         else if (q<=2.0) {
+            return (1.0/(4.0*PI))*pow(2.0-q,3);
+         }
+         else {    
+            return 0.0;
+         }
+#endif
+      }
+
+      inline double W(const double q,const double h) {
+         return (1/pow(h,NDIM))*K(q,h);
+      }
+
+      inline double W3d(const double q,const double h) {
+         return (1/pow(h,3))*K3d(q,h);
+      }
+
+      inline double W_MLS(const vect dx,const double Wab,const double b0,const vect bRest) {
+         return (b0 + dot(bRest,dx))*Wab;
+      }
+
+      inline void calcB_MLS(Cparticle &p,vector<Cparticle *> &neighbrs,double &b0,vect &bRest,vector<double> &vWab) {
+         int n = neighbrs.size();
+
+         vWab.resize(n);
+         gsl_matrix *matA = gsl_matrix_alloc(NDIM+1,NDIM+1);
+         gsl_matrix_set_all(matA,0.0);
+         gsl_vector *dxExt = gsl_vector_alloc(NDIM+1);
+         for (int i=0;i<n;i++) {
+            Cparticle *pn = neighbrs[i];
+            vect dx = p.r-pn->r;
+            double hav = 0.5*(p.h+pn->h);
+            vWab[i] = W(len(dx)/hav,hav);
+            gsl_vector_set(dxExt,0,1.0);
+            for (int j=0;j<NDIM;j++) {
+               gsl_vector_set(dxExt,j+1,dx[j]);
+            }
+            for (int j=0;j<NDIM+1;j++) {
+               for (int k=0;k<NDIM+1;k++) {
+                  gsl_matrix_set(matA,j,k,gsl_matrix_get(matA,j,k)+gsl_vector_get(dxExt,j)*gsl_vector_get(dxExt,k)*vWab[i]);
+               }
+            }
+         }
+         gsl_matrix *invA = gsl_matrix_alloc(NDIM+1,NDIM+1);
+         gsl_permutation *perm = gsl_permutation_alloc(NDIM+1);
+         int tmp;
+         gsl_linalg_LU_decomp(matA,perm,&tmp);
+
+         gsl_linalg_LU_invert(matA,perm,invA);
+
+         b0 = gsl_matrix_get(invA,0,0);
+         for (int i=0;i<NDIM;i++) {
+            bRest[i] = gsl_matrix_get(invA,0,i+1);
+         }
+         gsl_matrix_free(matA);
+         gsl_matrix_free(invA);
+         gsl_permutation_free(perm);
+         gsl_vector_free(dxExt);
+      }
+
+
+      inline void calc_aom(Cparticle &pa,Cparticle &pb,CglobalVars &g) {
+         double qa = len(pa.r-pb.r)/pa.h;
+         pa.aom -= (1.0/(NDIM*pow(HFAC,NDIM)*pa.mass))*pb.mass*(dKdq(qa,pa.h)*qa+NDIM*K(qa,pa.h));
+         //cout << "aom increment = "<<(1.0/(NDIM*pow(HFAC,NDIM)*pa.mass))*pb.mass*(Csph::dKdq(qa,pa.h)*qa+NDIM*Csph::K(qa,pa.h))<<endl;
+         //cout << "right most bit = "<<(Csph::dKdq(qa,pa.h)*qa+NDIM*Csph::K(qa,pa.h))<<endl;
+         //pa.aom -= (1/NDIM)*(1/pow(HFAC,NDIM))*(pb.mass/pa.mass)*(Csph::dKdq(qa,pa.h)*qa+NDIM*Csph::K(qa,pa.h));
+         //pa.aom = 1;
+      }
+
+      inline void init_aom(Cparticle &p,CglobalVars &g) {
+         p.aom= 1;
+         calc_aom(p,p,g);
+      }
+
+      
+
+      inline void calc_dhdt_and_dalphdt(Cparticle &p,CglobalVars &g) {
+         double graddotv = -p.dddt/p.dens;
+         p.dhdt = 0.5*p.h*graddotv;
+         double tou = p.h/(0.1*p.maxvsig);
+         double s = max(-graddotv,0.0)*(2.0-p.alpha);
+         p.dalphdt = -(p.alpha-MIN_ALPHA)/tou + s;
+      }
+
+      inline double courantCondition(const double h, const double vsig) {
+         //return 0.8*h/vsig; 
+#ifdef HALF_COURANT
+         return 0.4*h/vsig; 
+#else
+         return 0.8*h/vsig; 
+#endif
+      }
+
+      inline double viscDiffusionCondition(const double h, const double viscosity) {
+#ifdef VISC_MONAGHAN
+         return 0.06*pow(h,2)/viscosity;
+#else
+         return 0.125*pow(h,2)/viscosity;
+#endif
+      }
+      
+      inline double accelCondition(const double h, const double accel) {
+         return 0.25*sqrt(h/accel);
+      }
+
+      inline void calcViscEnergy(Cparticle &pa, Cparticle &pb, CglobalVars &g, const vect fv) {
+         if (pb.iam == sphBoundary) {
+            pa.deViscBdt -= dot(pa.v,fv);
+         } else {
+            pa.deViscFdt -= dot(pa.v,fv);
+         }
+      }
+
+      inline void calcViscForce(Cparticle &pa,Cparticle &pb,CglobalVars &g,const double Fa,const vect dv,const double r) { 
+         vect dx = pa.r-pb.r;
+         double vdr = dot(dx,dv);
+         double hav = 0.5*(pa.h+pb.h);
+#ifdef VISC_MORRIS
+         double visc = VISCOSITY*(pa.dens+pb.dens)/(pa.dens*pb.dens);
+#ifdef SLK
+         double vsig = 2.0*SPSOUND*r/len(pa.currR-pb.currR);
+#else
+         double vsig = 2.0*SPSOUND;
+#endif
+         vect fv = dv*pb.mass*visc*Fa;
+#endif
+#ifdef VISC_CLEARY 
+         double visc = 19.8*VISCOSITY*vdr/((pa.dens+pb.dens)*(pow(r,2)+0.01*pow(hav,2)));
+         double vsig = 2.0*SPSOUND;
+#ifdef MY_VAR_RES
+         vect gradV[NDIM]; 
+         for (int i=0;i<NDIM;i++) {
+            gradV[i]=0.5*(pa.gradV[i]+pb.gradV[i]);
+         }
+         vect fv = varResDx(dx,dv,gradV)*pb.mass*visc*Fa;
+#else
+         vect fv = dx*pb.mass*visc*Fa;
+#endif
+#endif
+#ifdef VISC_MONAGHAN
+#ifdef SLK
+         double dr = 0.0;
+         vect newDx = pa.currR-pb.currR;
+         double newVdr = dot(newDx,dv);
+         double newR = len(newDx);
+         if (newR!=0.0) dr = 1/newR;
+         double viss = newVdr*dr;
+         double vsig = 2.0*(SPSOUND + abs(viss))*r/len(pa.currR-pb.currR);
+#else
+         double dr = 0.0;
+         if (r!=0.0) dr = 1/r;
+         double viss = vdr*dr;
+         double vsig = 2.0*SPSOUND + 2.0*abs(viss);
+#endif
+         //cout << "abs(viss) = "<<abs(viss)<<" avspsound = "<<0.5*(pa.spsound+pb.spsound)<<endl;
+         //double vsig = 2.0*SPSOUND;
+         //if (vsig > pa.maxvsig) pa.maxvsig = vsig;
+         double visc = viss*vsig*ALPHA/(pa.dens+pb.dens);
+#ifdef MY_VAR_RES
+         vect gradV[NDIM]; 
+         for (int i=0;i<NDIM;i++) {
+            gradV[i]=0.5*(pa.gradV[i]+pb.gradV[i]);
+         }
+         vect newDv;
+         newDv[0] = dx[0]*gradV[0][0] + dx[1]*gradV[1][0];
+         newDv[1] = dx[0]*gradV[0][1] + dx[1]*gradV[1][1];
+         //vect fv = varResDx(dx,dv,gradV)*pb.mass*visc*Fa;
+         vect fv = varResDx(dx,newDv,gradV)*pb.mass*visc*Fa;
+
+
+
+
+         vect gradV[NDIM]; 
+         //TODO: works only for 2d
+         double eig[2];
+         double a = gradV[0][0]*PSEP/MY_VAR_RES_DV+1;
+         double b = gradV[1][0]*PSEP/MY_VAR_RES_DV;
+         double c = gradV[0][1]*PSEP/MY_VAR_RES_DV;
+         double d = gradV[1][1]*PSEP/MY_VAR_RES_DV+1;
+         double aa = pow(a,2)+pow(c,2);
+         double bb = a*b+c*d;
+         double cc = bb;
+         double dd = pow(b,2)+pow(d,2);
+         double tmp = (4*pow(bb,2) + pow(aa-dd,2))/2.0;
+         eig[0] = (aa+dd)/2.0 + sqrt(tmp);
+         eig[1] = (aa+dd)/2.0 - sqrt(tmp);
+         double maxEig = max(eig[0],eig[1]);
+         if (maxEig<0) {
+            printf("ERROR: maxEig<0\n");
+            printf("eig = %f %f\n",eig[0],eig[1]);
+            exit(-1);
+         }
+
+         for (int i=0;i<NDIM;i++) {
+            gradV[i]=0.5*(pa.gradV[i]+pb.gradV[i]);
+         }
+         vect newDr;
+         newDr[0] = (dx[0]*gradV[0][0] + dx[1]*gradV[1][0])*PSEP/MY_VAR_RES_DV + dx[0];
+         newDr[1] = (dx[0]*gradV[0][1] + dx[1]*gradV[1][1])*PSEP/MY_VAR_RES_DV + dx[1];
+         //vect fv = varResDx(dx,dv,gradV)*pb.mass*visc*Fa;
+         vect fv = varResDx(newDr,gradV)*pb.mass*visc*Fa;
+
+         g.newDt = min(g.newDt,courantCondition(hav/sqrt(maxEig),vsig));
+         g.newDt = min(g.newDt,viscDiffusionCondition(hav/sqrt(maxEig),VISCOSITY));
+
+#else
+#ifdef SLK
+         vect gDx;
+         //for (int i=0;i<NDIM;i++) {
+         //   for (int j=0;j<NDIM;j++) {
+         //      fp[i] += (pa.G[j*NDIM+i]
+
+         //TODO: This is 2d specific!!!!
+         gDx[0] = 0.5*((pa.G[0]+pb.G[0])*dx[0] + (pa.G[2]+pb.G[2])*dx[1]); 
+         gDx[1] = 0.5*((pa.G[1]+pb.G[1])*dx[0] + (pa.G[3]+pb.G[3])*dx[1]); 
+         vect fv = gDx*pb.mass*visc*Fa;
+#else
+         vect fv = dx*pb.mass*visc*Fa;
+#endif
+#endif
+#endif
+         //g.newDt = min(g.newDt,courantCondition(hav,vsig));
+         g.newDt = min(g.newDt,courantCondition(hav,2*SPSOUND));
+         g.newDt = min(g.newDt,viscDiffusionCondition(hav,VISCOSITY));
+         //pa.minDt = min(pa.minDt,courantCondition(hav,vsig));
+         //pa.minDt = min(pa.minDt,viscDiffusionCondition(hav,VISCOSITY));
+         pa.fv += fv;
+         pa.f += fv;
+
+         //calcViscEnergy(pa,pb,g,fv);
+      }
+      
+      inline void calcElasticEnergy(Cparticle &pa, Cparticle &pb, CglobalVars &g, const double Fa, const double antic) {
+         double vdr = dot(pa.v-pb.v,pa.r-pb.r);
+         double ufac = vdr*Fa;
+         double dudtinc = pb.mass*(pa.pdr2+0.5*antic)*ufac;
+         pa.dudt += dudtinc;
+         //if (pb.iam == sphBoundary) {
+         //   dudtinc = pa.mass*(pb.pdr2+0.5*antic)*ufac;
+         //   pb.dudt += dudtinc;
+         //}
+      }
+      
+      inline void calcBoundaryEnergy(Cparticle &pa, Cparticle &pb, CglobalVars &g, const vect fb) {
+         pa.deBForcedt -= dot(pa.v,fb);
+      }
+
+#ifdef BACKGROUND_PRESSURE_FORCE
+      inline void addBackgroundPressure(Cparticle &pa,CglobalVars &g) { 
+	 for (int i=0;i<NDIM;i++) {
+            pa.fp[i] += BGP_ACCEL[i];
+            pa.f[i] += BGP_ACCEL[i];
+	 }
+      }
+#endif
+
+      inline void calcPressForce(Cparticle &pa, Cparticle &pb,CglobalVars &g, const double Fa, const double kdwPowNeps) { 
+         vect dx = pa.r-pb.r;
+#ifdef DDENS_VARIANT
+         double prfac = 2.0*sqrt(pa.press*pb.press)/(pa.dens*pb.dens);
+#else
+         double prfac = (pa.pdr2 + pb.pdr2);
+#endif
+         double antic = 0.01*abs(prfac)*kdwPowNeps;
+#ifdef DIRECT_SMOOTHING
+         prfac = prfac + antic - (EPSILON/2.0)*len2(pa.v-pb.v)/DENS;
+#else
+         prfac = prfac + antic;
+#endif
+         //if (pa.tag == 1000) cout << "prfac = "<<prfac<<" antic = "<<antic<<" dens = "<<pa.dens<<" press = "<<pa.press<<" dens b = "<<pb.dens<<" press b = "<<pb.press<<endl;
+         double dwp = prfac*Fa;
+#ifdef MY_VAR_RES
+         vect gradV[NDIM]; 
+         for (int i=0;i<NDIM;i++) {
+            gradV[i]=0.5*(pa.gradV[i]+pb.gradV[i]);
+         }
+         vect newDr;
+         newDr[0] = (dx[0]*gradV[0][0] + dx[1]*gradV[1][0])*PSEP/MY_VAR_RES_DV + dx[0];
+         newDr[1] = (dx[0]*gradV[0][1] + dx[1]*gradV[1][1])*PSEP/MY_VAR_RES_DV + dx[1];
+         //vect fp = -varResDx(dx,(pa.v-pb.v),gradV)*pb.mass*dwp;
+         vect fp = -varResDx(newDr,gradV)*pb.mass*dwp;
+#else
+#ifdef SLK
+         vect gDx;
+         //for (int i=0;i<NDIM;i++) {
+         //   for (int j=0;j<NDIM;j++) {
+         //      fp[i] += (pa.G[j*NDIM+i]
+
+         //TODO: This is 2d specific!!!!
+         gDx[0] = 0.5*((pa.G[0]+pb.G[0])*dx[0] + (pa.G[2]+pb.G[2])*dx[1]); 
+         gDx[1] = 0.5*((pa.G[1]+pb.G[1])*dx[0] + (pa.G[3]+pb.G[3])*dx[1]); 
+         vect fp = -gDx*pb.mass*dwp;
+#else
+         vect fp = -dx*pb.mass*dwp;
+         //if (pa.tag == 2101) {
+         //   cout << "fp = "<<fp<<" pa.pdr2 = "<<pa.pdr2<<" pb.pdr2 = "<<pb.pdr2<<" pb.iam = "<<pb.iam<<" p.y = "<<pb.r[1]<<endl;
+         //}
+#endif
+#endif
+
+#ifdef DENS_DIFFUSE_PRESS
+         double r = len(dx);
+         vect dv = pa.v-pb.v;
+         double vdr = dot(dv,dx);
+         double dr = 0.0;
+         if (r!=0.0) dr = 1/r;
+         double viss = vdr*dr;
+         //cout << "abs(viss) = "<<abs(viss)<<" avspsound = "<<0.5*(pa.spsound+pb.spsound)<<endl;
+         double vsig = 2.0*SPSOUND + 2.0*abs(viss);
+         //double vsig = 2.0*SPSOUND;
+         //if (vsig > pa.maxvsig) pa.maxvsig = vsig;
+
+         double pressDiff = 2.0*ALPHA*vsig*(pa.dens-pb.dens)*(pa.pdr2-pb.pdr2)/(pa.dens+pb.dens);
+         fp -= dx*pb.mass*pressDiff*Fa; 
+#endif
+ 
+         pa.fp += fp;
+         pa.f += fp;
+         
+         //calcElasticEnergy(pa,pb,g,Fa,antic);
+         //} else if (pb.iam==sphBoundary) {
+         //   calcBoundaryEnergy(pa,pb,g,fp);
+         //}
+      }
+
+      inline void calcNormal(Cparticle &pa, Cparticle &pb,const vect &dx,const double &r,vect &norm) {
+         if (all(pb.norm2==0)) {
+            norm = pb.norm1;
+            return;
+         }
+ 
+         float rdot1 = dot(dx,pb.norm1);
+         float rdot2 = dot(dx,pb.norm2);
+         float rntest = r*r*dot(pb.norm1,pb.norm2) - rdot1*rdot2;
+         if (rntest <= 0) {
+            //use radial vector
+            norm = dx/r;
+            return;
+         } else {
+            //use either normal
+            int con;
+            if (pb.concave) {
+               con = 1;
+            } else {
+               con = -1;
+            }
+            if (con*(rdot1-rdot2) > 0) {
+               norm = pb.norm1;
+               return;
+            } else {
+               norm = pb.norm2;
+               return;
+            }
+         }
+      }
+      
+      inline void calcMorrisDv(Cparticle &pa, Cparticle &pb,const vect &norm,const vect &dx,vect &dv) {
+         double dista = dot(dx,norm)-pb.dist;
+         //dv = min(BETA_MAX,1.0+pb.dist/dista)*pa.v;
+         //in this case pb.v is the velocity of the boundary
+         dv = (1.0+pb.dist/dista)*(pa.v-pb.v);
+      }
+
+      inline void calcRadialBoundaryForces2D(Cparticle &p, Cparticle &bp,CglobalVars &g) {
+         
+         const double bforce = 1;
+         vect fb = 0.02*pow(SPSOUND,2)*bforce/(p.mass+bp.mass);
+         p.f += fb;
+         p.fb += fb;
+      }
+
+      inline void calcBoundaryForces(Cparticle &p, Cparticle &bp,CglobalVars &g,const vect norm, const double kdwPowNeps) {
+         vect dx = p.r-bp.r;
+         double rperp = dot(norm,dx);
+         double rtang = len(cross(norm,dx));
+         double pdist = rtang/BFAC*PSEP;
+         if (pdist <= 1.0) { 
+            double pesky = 1.0-pdist;
+            double hav = 0.5*(p.h+bp.h);
+#ifdef MY_VAR_RES
+            vect gradV[NDIM]; 
+            for (int i=0;i<NDIM;i++) {
+               gradV[i]=0.5*(p.gradV[i]+bp.gradV[i]);
+            }
+            //TODO:This is 2D
+            vect newDv;
+            newDv[0] = dx[0]*gradV[0][0] + dx[1]*gradV[1][0];
+            newDv[1] = dx[0]*gradV[0][1] + dx[1]*gradV[1][1];
+            double q = (abs(rperp)+len(newDv))/hav;
+#else
+            double q = abs(rperp)/hav;
+#endif
+            double bfact = 1.0/abs(rperp);
+            double bforce = 0.0;
+            if (q <= QIN) {
+               bforce = bfact*QIN;
+            } else if (q <= 1.0) {
+               bforce = bfact*(2.0*q - 1.5*q*q);
+            } else if (q <= 2.0) {
+               bforce = bfact*0.5*pow(2.0-q,2);
+            }
+
+            int srperp = 1;
+            if (rperp < 0) srperp = -1;
+
+            double coef = 0.01*pow(SPSOUND,2)*(1.0+kdwPowNeps);
+            double amassrat = 2.0*bp.mass/(bp.mass+p.mass);
+            double bff = coef*bforce*pesky*amassrat;
+            vect fb = srperp*bff*norm;
+            p.f += fb;
+            p.fb += fb;
+
+            //p.debfor += -bff*(bp.norm[0]*p.v[0] + bp.norm[1]*p.v[1]);
+            //p.minDt = min(p.minDt,0.5*abs(rperp)/sqrt(coef));
+            g.newDt = min(g.newDt,0.5*abs(rperp)/sqrt(coef));
+            //if (p.tag==2204) cout << "norm = "<<norm<<" pdist = "<<pdist<<" fb = "<<fb<<" p.r = "<<p.r<<" bp.r = "<<bp.r<<endl;
+         }
+      }
+
+      inline void calcBoundaryForces2D(Cparticle &p, Cparticle &bp,CglobalVars &g,const vect norm, const double kdwPowNeps) {
+         vect dx = p.r-bp.r;
+         double rperp = norm[0]*dx[0] + norm[1]*dx[1];
+         double rtang = norm[0]*dx[1] - norm[1]*dx[0];
+         double pdist = abs(rtang/BFAC*PSEP);
+         if (pdist <= 1.0) { 
+            double pesky = 1.0-pdist;
+            double hav = 0.5*(p.h+bp.h);
+#ifdef MY_VAR_RES
+            vect gradV[NDIM]; 
+            for (int i=0;i<NDIM;i++) {
+               gradV[i]=0.5*(p.gradV[i]+bp.gradV[i]);
+            }
+            //TODO:This is 2D
+            vect newDv;
+            newDv[0] = dx[0]*gradV[0][0] + dx[1]*gradV[1][0];
+            newDv[1] = dx[0]*gradV[0][1] + dx[1]*gradV[1][1];
+            double q = (abs(rperp)+len(newDv))/hav;
+#else
+            double q = abs(rperp)/hav;
+#endif
+            double bfact = 1.0/abs(rperp);
+            double bforce = 0.0;
+            if (q <= QIN) {
+               bforce = bfact*QIN;
+            } else if (q <= 1.0) {
+               bforce = bfact*(2.0*q - 1.5*q*q);
+            } else if (q <= 2.0) {
+               bforce = bfact*0.5*pow(2.0-q,2);
+            }
+
+            int srperp = 1;
+            if (rperp < 0) srperp = -1;
+
+            double coef = 0.01*pow(SPSOUND,2)*(1.0+kdwPowNeps);
+            double amassrat = 2.0*bp.mass/(bp.mass+p.mass);
+            double bff = coef*bforce*pesky*amassrat;
+            vect fb = srperp*bff*norm;
+            p.f += fb;
+            p.fb += fb;
+
+            //p.debfor += -bff*(bp.norm[0]*p.v[0] + bp.norm[1]*p.v[1]);
+            //p.minDt = min(p.minDt,0.5*abs(rperp)/sqrt(coef));
+            g.newDt = min(g.newDt,0.5*abs(rperp)/sqrt(coef));
+            //if (p.tag==2204) cout << "norm = "<<norm<<" pdist = "<<pdist<<" fb = "<<fb<<" p.r = "<<p.r<<" bp.r = "<<bp.r<<endl;
+         }
+      }
+
+
+      inline void calcVortSPHSum(Cparticle &p, vector<Cparticle *> &neighbrs,CglobalVars &g) {
+         //TODO: currently only supports 2D, make it more general
+
+         double correctionTerm = 0;
+         p.vort = 0;
+
+         for (int i=0;i<neighbrs.size();i++) {
+            if (neighbrs[i]->iam == sph) {
+               Cparticle *pn = neighbrs[i];
+               vect dr = p.r-pn->r;
+               vect dv = p.v-pn->v;
+               double r2 = len2(dr);
+               double r = sqrt(r2);
+               double hav = 0.5*(p.h+pn->h);
+               double Fa = F(r/hav,hav);
+
+               //Here is the 2D specific line
+               p.vort += pn->mass*Fa*(dv[0]*dr[1]-dv[1]*dr[0])/pn->dens;
+               correctionTerm -= 0.5*pn->mass*r2*Fa/pn->dens;
+            }
+         }
+         
+         if (correctionTerm != 0) p.vort /= correctionTerm;
+      }
+#ifdef SLK
+      inline void calcGLeastSquares(Cparticle &p, vector<Cparticle *> &neighbrs,CglobalVars &g) {
+
+         double chisq;
+
+         int n = neighbrs.size();
+
+         gsl_matrix *X = gsl_matrix_alloc(n,NDIM);
+         gsl_vector *y = gsl_vector_alloc(n);
+
+         gsl_vector *c = gsl_vector_alloc(NDIM);
+         gsl_matrix *cov = gsl_matrix_alloc(NDIM,NDIM);
+            
+         gsl_multifit_linear_workspace *work = gsl_multifit_linear_alloc(n,NDIM);
+
+         for (int i=0;i<n;i++) {
+            Cparticle *pn = neighbrs[i];
+            vect dx = pn->currR-p.currR;
+            for (int j=0;j<NDIM;j++) {
+               gsl_matrix_set(X,i,j,dx[j]);
+            }
+         }
+
+         for (int j=0;j<NDIM;j++) {
+            for (int i=0;i<n;i++) {
+               Cparticle *pn = neighbrs[i];
+               gsl_vector_set(y,i,pn->r[j]-p.r[j]);
+            }
+            
+            gsl_multifit_linear(X,y,c,cov,&chisq,work);
+
+            for (int i=0;i<NDIM;i++) {
+               p.G[j*NDIM+i] = gsl_vector_get(c,i);
+            }
+         }
+         gsl_multifit_linear_free(work);
+         gsl_vector_free(c);
+         gsl_vector_free(y);
+         gsl_matrix_free(X);
+         gsl_matrix_free(cov);
+      }
+#endif
+
+
+      inline void calcVortLeastSquares(Cparticle &p, vector<Cparticle *> &neighbrs,CglobalVars &g) {
+         //TODO: currently only supports 2D, make it more general
+
+         Array<double,2> coeff(NDIM,NDIM);
+
+         double chisq;
+
+         vector<Cparticle *> sphNeighbrs;
+
+         for (int i=0;i<neighbrs.size();i++) {
+            if ((neighbrs[i]->iam == sph)||(neighbrs[i]->iam == ghost)) sphNeighbrs.push_back(neighbrs[i]);
+         }
+         
+         int n = sphNeighbrs.size();
+
+         gsl_matrix *X = gsl_matrix_alloc(n,NDIM);
+         gsl_vector *y = gsl_vector_alloc(n);
+
+         gsl_vector *c = gsl_vector_alloc(NDIM);
+         gsl_matrix *cov = gsl_matrix_alloc(NDIM,NDIM);
+            
+         gsl_multifit_linear_workspace *work = gsl_multifit_linear_alloc(n,NDIM);
+
+         for (int i=0;i<n;i++) {
+            Cparticle *pn = sphNeighbrs[i];
+            vect dx = pn->r-p.r;
+            for (int j=0;j<NDIM;j++) {
+               gsl_matrix_set(X,i,j,dx[j]);
+            }
+         }
+
+         for (int j=0;j<NDIM;j++) {
+            for (int i=0;i<n;i++) {
+               Cparticle *pn = sphNeighbrs[i];
+               gsl_vector_set(y,i,pn->v[j]-p.v[j]);
+            }
+            
+            gsl_multifit_linear(X,y,c,cov,&chisq,work);
+
+            for (int i=0;i<NDIM;i++) {
+               coeff(j,i) = gsl_vector_get(c,i);
+            }
+         }
+         gsl_multifit_linear_free(work);
+         gsl_vector_free(c);
+         gsl_vector_free(y);
+         gsl_matrix_free(X);
+         gsl_matrix_free(cov);
+
+         //This is the bit restricted to 2D, should be easy to entend for 3D, but I can't be bothered
+         p.vort = coeff(1,0) - coeff(0,1);
+      }
+
+#ifdef MY_VAR_RES
+      inline void calcGradVLeastSquares(Cparticle &p, vector<Cparticle *> &neighbrs,CglobalVars &g) {
+
+         double chisq;
+
+         vector<Cparticle *> sphNeighbrs;
+
+         for (int i=0;i<neighbrs.size();i++) {
+            if ((neighbrs[i]->iam == sph)||(neighbrs[i]->iam == ghost)||(neighbrs[i]->iam == sphBoundary)) sphNeighbrs.push_back(neighbrs[i]);
+         }
+         
+         int n = sphNeighbrs.size();
+
+         if (n>NDIM) {
+
+            gsl_matrix *X = gsl_matrix_alloc(n,NDIM);
+            gsl_vector *y = gsl_vector_alloc(n);
+
+            gsl_vector *c = gsl_vector_alloc(NDIM);
+            gsl_matrix *cov = gsl_matrix_alloc(NDIM,NDIM);
+            
+            gsl_multifit_linear_workspace *work = gsl_multifit_linear_alloc(n,NDIM);
+
+            for (int i=0;i<n;i++) {
+               Cparticle *pn = sphNeighbrs[i];
+               vect dx = pn->r-p.r;
+               for (int j=0;j<NDIM;j++) {
+                  gsl_matrix_set(X,i,j,dx[j]);
+               }
+            }
+
+            for (int j=0;j<NDIM;j++) {
+               for (int i=0;i<n;i++) {
+                  Cparticle *pn = sphNeighbrs[i];
+                  gsl_vector_set(y,i,pn->v[j]-p.v[j]);
+               }
+            
+               gsl_multifit_linear(X,y,c,cov,&chisq,work);
+
+               for (int i=0;i<NDIM;i++) {
+                  p.gradV[i][j] = gsl_vector_get(c,i);
+                  //p.gradV(j,i) = gsl_vector_get(c,i);
+               }
+            }
+            gsl_multifit_linear_free(work);
+            gsl_vector_free(c);
+            gsl_vector_free(y);
+            gsl_matrix_free(X);
+            gsl_matrix_free(cov);
+         } else {
+            for (int i=0;i<NDIM;i++) {
+               p.gradV[i] = 0;
+            }
+         }
+      }
+#endif
+
+
+
+      inline void calcDensity(Cparticle &p, vector<Cparticle *> &neighbrs,CglobalVars &g) {
+#ifdef REINIT_DENS_MLS
+         double b0;
+         vect bRest;
+         vector<double> vWab;
+         calcB_MLS(p,neighbrs,b0,bRest,vWab);
+         int n = neighbrs.size();
+         p.dens = 0;
+         for (int i=0;i<n;i++) {
+            Cparticle *pn = neighbrs[i];
+            p.dens += pn->mass*W_MLS(p.r-pn->r,vWab[i],b0,bRest);
+         }
+         vWab.~vector<double>();
+#else
+         double Wsum = p.mass*W(0,p.h)/p.dens;
+         p.dens = p.mass*W(0,p.h);
+         for (int i=0;i<neighbrs.size();i++) {
+            Cparticle *pn = neighbrs[i];
+            if (pn->iam == dem) continue;
+            vect dr = p.r-pn->r;
+            double r = len(dr);
+            double hav = 0.5*(p.h+pn->h);
+            double Wa = W(r/hav,hav);
+            p.dens += pn->mass*Wa;
+            Wsum += pn->mass*Wa/pn->dens;
+         }
+         //Wsum *= 4*PI*pow(p.h,2)/(neighbrs.size()+1);
+         //cout << "before: dens = "<<p.dens <<" h = "<<p.h<<" Wsum = "<<Wsum<<" dens/Wsum = "<<p.dens/Wsum<<endl;
+         p.dens /= Wsum;
+         //cout << "dens = "<<p.dens <<" h = "<<p.h<<endl;
+#endif
+      }
+
+#ifdef LIQ_DEM
+      inline void calcPorosity(Cparticle &p, vector<Cparticle *> &neighbrs,CglobalVars &g) {
+         p.porosity = 0.0;
+         int n = neighbrs.size();
+         for (int i=0;i<n;i++) {
+            Cparticle *pn = neighbrs[i];
+            double r = len(p.r-pn->r);
+            if (pn->iam != dem) continue;
+#ifdef _2D_
+#ifdef _2D_DEM
+            p.porosity += PI*pow(DEM_RADIUS,2)*W(r/p.h,p.h);          
+#else
+            p.porosity += (4.0/3.0)*PI*pow(DEM_RADIUS,3)*W(r/p.h,p.h)/(2.0*DEM_RADIUS);          
+#endif
+#else
+            p.porosity += (4.0/3.0)*PI*pow(DEM_RADIUS,3)*W(r/p.h,p.h);          
+#endif
+            //p.porosity += pn->mass*W(r/p.h,p.h);          
+            //p.porosity += (4.0/3.0)*PI*pow(DEM_RADIUS,3)*W3d(r/p.h,p.h);          
+         }
+         p.porosity = 1.0 - p.porosity;
+      }
+
+      inline void interpolatePorosityAndH(Cparticle &p, vector<Cparticle *> &neighbrs,CglobalVars &g) {
+         p.porosity = 0;
+         p.hErr = 0;
+         double sum = 0;
+         int n = neighbrs.size();
+         for (int i=0;i<n;i++) {
+            Cparticle *pn = neighbrs[i];
+            if (pn->iam != sph) continue;
+            double r = len(p.r-pn->r);
+            double dvWab = pn->mass*W(r/pn->h,pn->h)/pn->dens;
+            p.porosity += pn->porosity*dvWab;          
+            p.hErr += pn->h*dvWab;          
+            sum += dvWab;
+         }
+         if (sum>0.5) {
+            p.porosity /= sum;
+            p.hErr /= sum;
+         }
+         p.tmp = sum;
+         //p.porosity = p.mass*W(0,p.hErr);
+         //for (int i=0;i<n;i++) {
+         //   Cparticle *pn = neighbrs[i];
+         //   double r = len(p.r-pn->r);
+         //   if (pn->iam != dem) continue;
+         //   p.porosity += pn->mass*W(r/p.hErr,p.hErr);          
+         //}
+         //p.porosity = 1.0 - p.porosity/DEM_DENS;
+      }
+
+      inline void calcFPI(Cparticle &p, vector<Cparticle *> &neighbrs,CglobalVars &g) {
+         double sum = 0;
+         double fdens = 0;
+         vect fp = 0.0;
+         vect fv = 0.0;
+         vect fvel = 0.0;
+         int n = neighbrs.size();
+         for (int i=0;i<n;i++) {
+            Cparticle *pn = neighbrs[i];
+            if (pn->iam != sph) continue;
+            double dv = pn->mass/pn->dens;
+            double r = len(p.r-pn->r);
+            double Wab = W(r/pn->h,pn->h);
+            double dvWab = dv*Wab;
+            fp += dvWab*pn->fp;
+            fv += dvWab*pn->fv;
+            fvel += dvWab*pn->vhat;
+            fdens += Wab*pn->mass;
+            sum += dvWab;
+         }
+         if (sum>0.5) {
+            double rsum = 1/sum;
+            fp *= rsum;
+            fv *= rsum;
+            fvel *= rsum;
+            fdens *= rsum;
+            double pVol = p.mass/DEM_DENS;
+            const vect dv = fvel-p.vhat;
+            const double vdiff = len(dv);
+            vect fd;
+            if (vdiff == 0.0) {
+               fd = 0.0;
+            } else {
+               //const double Re = (2.0*DEM_RADIUS/VISCOSITY)*vdiff;
+#ifdef ERGUN
+               const double beta = 150*(1-p.porosity)*VISCOSITY/(pow(2.0*DEM_RADIUS,2)*p.porosity) + (1.75*0.5/DEM_RADIUS)*vdiff;
+#ifdef _2D_DEM
+               fd = PI*pow(DEM_RADIUS,2)*beta*dv;
+#else
+               fd = (4.0/3.0)*PI*pow(DEM_RADIUS,3)*beta*dv;
+#endif
+#else
+               const double Re = (2.0*DEM_RADIUS/VISCOSITY)*p.porosity*vdiff;
+               double dragGamma = 3.7 - 0.65*exp(-pow(1.5-log10(Re),2)/2.0);
+               double C = pow(0.63 + 4.8/pow(Re,0.5),2);
+               fd = (1.0/2.0)*C*PI*pow(DEM_RADIUS,2)*vdiff*dv*pow(p.porosity,2-dragGamma);
+#endif
+            }
+           
+            //p.fp = (fdens/DEM_DENS)*(fp+fv) + (DENS/p.mass)*fd;
+            p.fp = (fdens/DEM_DENS)*(fp+fv) + (DENS/p.mass)*fd;
+            p.f += p.fp;
+            //p.fp = (fdens/DEM_DENS)*(fp+fv) + (DENS/p.mass)*fd;
+            /*
+            p.fp = (fdens/DEM_DENS)*fp;
+            p.fv = (fdens/DEM_DENS)*fv;
+            p.fb = (DENS/p.mass)*fd;
+            */
+            //p.fp = (fdens/DEM_DENS)*(fp+fd);
+            //if (g.sphStep>DAMP_STEPS) {
+            //   cout << "fd = "<<fd<<endl;
+            //   cout << "fv = "<<fv<<endl;
+            //   cout << "fp = "<<fp<<endl;
+            //   cout << fdens/DEM_DENS<<" "<<fp+fv+fd<<endl;
+            //   cout << "all up = "<<p.fp<<endl;
+            //}
+         }
+      }
+
+
+      inline void calcFPIOnFluid(Cparticle &p, vector<Cparticle *> &neighbrs,CglobalVars &g) {
+         p.ff = 0;
+         int n = neighbrs.size();
+         //double rdens = 1.0/p.dens;
+#ifdef _2D_
+#ifdef _2D_DEM
+         double rdens = 1.0/p.dens;
+#else
+         double rdens = (1.0/(2.0*DEM_RADIUS))/p.dens;
+#endif
+#else
+         double rdens = 1.0/p.dens;
+#endif
+         //double rdens = p.mass/(p.dens*PSEP*PSEP*PSEP*DENS);
+         for (int i=0;i<n;i++) {
+            Cparticle *pn = neighbrs[i];
+            if (pn->iam != dem) continue;
+            double r = len(p.r-pn->r);
+            p.ff -= pn->mass*rdens*pn->fp*W(r/p.h,p.h)/pn->tmp;
+         }
+         p.f += p.ff;
+      }
+
+#endif
+
+      inline void calcHFromDens(Cparticle &p,CglobalVars &g) {
+         p.h = HFAC*pow(p.mass/p.dens,1.0/NDIM);
+      }
+      
+      inline bool ifSph(Cparticle &p) {
+         return p.iam == sph;
+      }
+      inline bool ifDem(Cparticle &p) {
+         return p.iam == dem;
+      }
+      inline bool ifSphOrDem(Cparticle &p) {
+         return (p.iam == sph)||(p.iam == dem);
+      }
+      inline bool ifSphBoundary(Cparticle &p) {
+         return p.iam == sphBoundary;
+      }
+      inline bool ifSphOrSphBoundary(Cparticle &p) {
+         return (p.iam==sph)||(p.iam==sphBoundary);
+      }
+      inline bool ifSphOrSphBoundaryOrDem(Cparticle &p) {
+         return (p.iam==sph)||(p.iam==sphBoundary)||(p.iam==dem);
+      }
+      //inline bool ifNotBoundary(Cparticle &p) {
+      //   return (p.iam!=boundary);
+      //}
+      inline bool ifSphOrSphBoundaryOrGhost(Cparticle &p) {
+         return (p.iam==sph)||(p.iam==sphBoundary)||(p.iam==ghost);
+      }
+      inline bool ifSphOrGhost(Cparticle &p) {
+         return (p.iam == sph)||(p.iam == ghost);
+      }
+      inline bool ifBoundary(Cparticle &p) {
+         return (p.iam == boundary)||((p.iam >= boundaryobj1)&&(p.iam <= boundaryobj6));
+      }
+
+}
+	
+#endif
