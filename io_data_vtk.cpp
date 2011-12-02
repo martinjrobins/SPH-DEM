@@ -410,7 +410,9 @@ void Cio_data_vtk::writeOutput(int timestep,particleContainer &ps,CcustomSimBase
    vtkFloatArray *vhat = vtkFloatArray::New();
 #ifdef LIQ_DEM
    vtkFloatArray *porosity= vtkFloatArray::New();
+   vtkFloatArray *dporositydt= vtkFloatArray::New();
    vtkFloatArray *fdrag = vtkFloatArray::New();
+   vtkFloatArray *shepSum = vtkFloatArray::New();
 #endif
 
 #ifdef SLK
@@ -436,6 +438,8 @@ void Cio_data_vtk::writeOutput(int timestep,particleContainer &ps,CcustomSimBase
    iam->SetNumberOfValues(n);
 #ifdef LIQ_DEM
    porosity->SetNumberOfValues(n);
+   dporositydt->SetNumberOfValues(n);
+   shepSum->SetNumberOfValues(n);
    fdrag->SetNumberOfComponents(3);
    fdrag->SetNumberOfTuples(n);
 #endif
@@ -464,6 +468,8 @@ void Cio_data_vtk::writeOutput(int timestep,particleContainer &ps,CcustomSimBase
    press->SetName("press");
 #ifdef LIQ_DEM
    porosity->SetName("porosity");
+   dporositydt->SetName("dporositydt");
+   shepSum->SetName("shepSum");
    fdrag->SetName("fdrag");
 #endif
 #ifdef SLK
@@ -526,6 +532,8 @@ void Cio_data_vtk::writeOutput(int timestep,particleContainer &ps,CcustomSimBase
 #endif
 #ifdef LIQ_DEM
       porosity->SetValue(i,p->porosity);
+      dporositydt->SetValue(i,p->dporositydt);
+      shepSum->SetValue(i,p->shepSum);
 #if NDIM==2
       fdrag->SetTuple3(i,p->fdrag[0],p->fdrag[1],0.0);
 #else
@@ -552,7 +560,9 @@ void Cio_data_vtk::writeOutput(int timestep,particleContainer &ps,CcustomSimBase
    dataset->GetPointData()->AddArray(vhat);
 #ifdef LIQ_DEM
    dataset->GetPointData()->AddArray(porosity);
+   dataset->GetPointData()->AddArray(dporositydt);
    dataset->GetPointData()->AddArray(fdrag);
+   dataset->GetPointData()->AddArray(shepSum);
 #endif
 #ifdef SLK
    dataset->GetPointData()->AddArray(dr);
@@ -594,6 +604,8 @@ void Cio_data_vtk::writeOutput(int timestep,particleContainer &ps,CcustomSimBase
    press->Delete();
 #ifdef LIQ_DEM
    porosity->Delete();
+   dporositydt->Delete();
+   shepSum->Delete();
    fdrag->Delete();
 #endif
    v->Delete();

@@ -84,7 +84,7 @@ namespace Nmisc {
 
    void boundaryLine(vector<Cparticle> &ps,vect *points,vect *normals,bool *concave,int numPoints,enum iamTypes iam);
 
-   void boundaryPlane(vector<Cparticle> &ps,vect side1,vect side2,vect neighbrNorm1,vect neighbrNorm2,vect neighbrNorm3,vect neighbrNorm4,vect initPos,double thisPsep,bool flipNorm);
+   void boundaryPlane(vector<Cparticle> &ps,vect side1,vect side2,vect neighbrNorm1, bool smoothEdge1, vect neighbrNorm2, bool smoothEdge2,vect neighbrNorm3, bool smoothEdge3,vect neighbrNorm4, bool smoothEdge4,vect initPos,double thisPsep,bool flipNorm);
    void boundaryCircle(vector<Cparticle> &ps,const vect &origin,const double radiusMin,const double radiusMax,const vect normal);
    void boundaryCylinderNoTopBottom(vector<Cparticle> &ps,const vect &origin,const double radius,const double height);
 

@@ -8,6 +8,15 @@ const unsigned int KEY_DIM_MAX = (unsigned int)floor(pow(2.0,(int)KEY_DIM_BITS)-
 CdataLL::CdataLL(particleContainer &in_ps, CglobalVars &in_globals,bool opt): ps(in_ps),globals(in_globals) {
    //initialise hmax, the maximum smoothing length
    hmax = H;
+   sph_search_radius = H;
+   for (int i=0;i<NDIM;i++) {
+      cell_max[i] = globals.procDomain[i*2+1];
+      cell_min[i] = globals.procDomain[i*2];
+   }
+   cells.resize(static_cast<vectInt>((cell_max-cell_min)/(KERNAL_RADIUS*sph_search_radius))+8);
+#ifdef LIQ_DEM
+   dem_cells.resize(static_cast<vectInt>((cell_max-cell_min)/(2*DEM_SEARCH_RADIUS))+2*3*H/DEM_SEARCH_RADIUS);
+#endif
    
    cout << "size of particle array = "<<ps.capacity()*sizeof(Cparticle)/1024/1024<<" MB"<<endl;
 
@@ -136,6 +145,54 @@ void CdataLL::reset() {
 
    timeval t1,t2;
    gettimeofday(&t1,NULL);
+
+   //clear bucket list
+   for (vector<vector<Cparticle *>*>::iterator dirty_cell = dirty_cells.begin();dirty_cell != dirty_cells.end();dirty_cell++) {
+      (*dirty_cell)->clear();
+   }
+   dirty_cells.clear();
+   /*
+#ifdef LIQ_DEM
+   for (particleContainer::iterator p = ps.begin();p != ps.end();p++) {
+      if (p->iam==dem) {
+         const vectInt cellI = dem_getCellI(p->r);
+         dem_cells(cellI).clear();
+      }
+   }
+   for (vector<Cparticle>::iterator p = procGhostParticles.begin();p != procGhostParticles.end();p++) {
+      if (p->iam==dem) {
+         const vectInt cellI = dem_getCellI(p->r);
+         dem_cells(cellI).clear();
+      }
+   }
+#endif
+
+   
+
+   if (cells.size()>ps.size()+procGhostParticles.size()) {
+      for (particleContainer::iterator p = ps.begin();p != ps.end();p++) {
+#ifdef LIQ_DEM
+         if (p->iam==dem) continue;
+#endif
+         const vectInt cellI = getCellI(p->r);
+         cells(cellI).clear();
+      }
+
+      for (vector<Cparticle>::iterator p = procGhostParticles.begin();p != procGhostParticles.end();p++) {
+#ifdef LIQ_DEM
+         if (p->iam==dem) continue;
+#endif
+         const vectInt cellI = getCellI(p->r);
+         cells(cellI).clear();
+      }
+   } else {
+      for (Array<vector<Cparticle *>,NDIM>::iterator i=cells.begin();i!=cells.end();i++) {
+         i->clear();
+      }
+   }
+   */
+
+
    int psCapacity = ps.capacity();
 
    // update domain and sync with neighbouring processes
@@ -159,18 +216,15 @@ void CdataLL::reset() {
    // recalculate limits
    calcDomainLimits();
    
-   // clear bucket list and reinsert particles and ghost particles
-   cells.resize(static_cast<vectInt>((rmax-rmin)/(KERNAL_RADIUS*hmax))+8);
-#ifdef LIQ_DEM
-   dem_cells.resize(static_cast<vectInt>((rmax-rmin)/(2*DEM_RADIUS))+2*3*H/DEM_RADIUS);
-   for (Array<vector<Cparticle *>,NDIM>::iterator i=dem_cells.begin();i!=dem_cells.end();i++) {
-      i->clear();
-   }
-#endif
+   // reinsert particles and ghost particles
 
-   for (Array<vector<Cparticle *>,NDIM>::iterator i=cells.begin();i!=cells.end();i++) {
-      i->clear();
+
+   if ((hmax > sph_search_radius)||(hmax < 0.9*sph_search_radius)) {
+      sph_search_radius = hmax;
+      cells.resize(static_cast<vectInt>((cell_max-cell_min)/(KERNAL_RADIUS*sph_search_radius))+8);
    }
+   
+
    for (particleContainer::iterator p = ps.begin();p != ps.end();p++) {
       insert(*p);
    }
@@ -320,18 +374,23 @@ void CdataLL::updateDomain() {
       }
       vectInt outCoords = static_cast<vectInt>((thisP->r-dmin)/dspace+1);
       if (any(outCoords>2)||any(outCoords<0)) {
-         cout << "Particle out of range! Tag = "<<thisP->tag<<" iam = "<<thisP->iam<<" position = "<<thisP->r<<" velocityhat = "<<thisP->vhat<<" velocity = "<<thisP->v<<" density = "<<thisP->dens<<" total force = "<<thisP->f<<" pressure force = "<<thisP->fp<<" boundary force = "<<thisP->fb<<endl;
-         exit(-1);
+         cerr << "Particle out of range! Tag = "<<thisP->tag<<" iam = "<<thisP->iam<<" position = "<<thisP->r<<" velocityhat = "<<thisP->vhat<<" velocity = "<<thisP->v<<" density = "<<thisP->dens<<" total force = "<<thisP->f<<" pressure force = "<<thisP->fp<<" boundary force = "<<thisP->fb<<endl;
+         deleteParticle(ppInfoLink,ppInfo);
+         continue;
       }
-      if (globals.procNeighbrs(outCoords) >= 0) {
-         //send particle to neighbour
-         //add to real particle to send
-         if (particleIndicies(outCoords)>=pBufferSizes(outCoords)) {
-            cerr << "particleBuffers are full, exiting...."<<endl;
-            exit(-1);
+      if (any(outCoords!=1)) {
+         if (globals.procNeighbrs(outCoords) >= 0) {
+            //send particle to neighbour
+            //add to real particle to send
+            if (particleIndicies(outCoords)>=pBufferSizes(outCoords)) {
+               cerr << "particleBuffers are full, exiting...."<<endl;
+               exit(-1);
+            }
+            particleBuffersSend(outCoords)[particleIndicies(outCoords)] = *thisP;
+            particleIndicies(outCoords)++;
+         } else {
+            cerr << "Particle out of range! Tag = "<<thisP->tag<<" iam = "<<thisP->iam<<" position = "<<thisP->r<<" velocityhat = "<<thisP->vhat<<" velocity = "<<thisP->v<<" density = "<<thisP->dens<<" total force = "<<thisP->f<<" pressure force = "<<thisP->fp<<" boundary force = "<<thisP->fb<<endl;
          }
-         particleBuffersSend(outCoords)[particleIndicies(outCoords)] = *thisP;
-         particleIndicies(outCoords)++;
          deleteParticle(ppInfoLink,ppInfo);
          continue;
       }
@@ -490,13 +549,24 @@ void CdataLL::updateDomain() {
          for (Array<int,NDIM>::iterator pD = dummy.begin();pD !=dummy.end();pD++) {
             vectInt dCoords = pD.position();
             if (globals.procNeighbrs(dCoords) >= 0) {
-               //cout <<"adding type "<<thisP->iam<<" at r = "<<thisP->r<<" to "<<dCoords<<endl; 
+               //if ((globals.mpiRank==0)&&(dCoords[0]==2)&&(dCoords[1]==1)&&(dCoords[2]==0)) cout <<"mpiRank = "<<globals.mpiRank<<". adding type "<<thisP->iam<<" at r = "<<thisP->r<<" to "<<dCoords<<endl; 
                //add to ghost particle array
                if (ghostIndicies(dCoords)>=gBufferSizes(dCoords)) {
                   cerr << "ghostBuffers are full, exiting...."<<endl;
                   cerr << "buffer size is "<<gBufferSizes(dCoords) <<endl;
+                  cerr << "buffer is "<<dCoords<<endl;
+                  cerr << "mpirank is "<<globals.mpiRank<<endl;
                   exit(-1);
                }
+#ifdef BORE_SOLITON
+               if ((globals.mpiRank==ENDPERIODICCPU)&&(dCoords[0]==2)) {
+                  Cparticle newP = *thisP;
+                  vectInt coords = 1;
+                  coords[0] = 2;
+                  newP.r[0] += procGhostMax2H(coords);
+                  procGhostParticles.push_back(*thisP);
+               }
+#endif
                ghostBuffersSend(dCoords)[ghostIndicies(dCoords)] = *thisP;
                ghostedParticles(dCoords)[ghostIndicies(dCoords)] = thisP;
                ghostIndicies(dCoords)++;
@@ -561,6 +631,10 @@ void CdataLL::updateDomain() {
       vectInt coords = ap.position();
       int neighbr = globals.procNeighbrs(coords);
       if (neighbr >= 0) {
+
+#ifdef BORE_SOLITON
+         if ((globals.mpiRank==ENDPERIODICCPU)&&(coords[0]==2)) continue; 
+#endif
          //work out ghost max h's
          double maxh = hmax;
 
@@ -896,15 +970,21 @@ void CdataLL::calcDomainLimits() {
 void CdataLL::insert(Cparticle &p) {
 #ifdef LIQ_DEM
    if (p.iam==dem) {
-      vectInt cellI = dem_getCellI(p.r);
-      dem_cells(cellI).push_back(&p);
+      vector<Cparticle *> &cell = dem_cells(dem_getCellI(p.r));
+      if (cell.size()==0) 
+         dirty_cells.push_back(&cell);
+      cell.push_back(&p);
    } else {
-      vectInt cellI = getCellI(p.r);
-      cells(cellI).push_back(&p);
+      vector<Cparticle *> &cell = cells(getCellI(p.r));
+      if (cell.size()==0) 
+         dirty_cells.push_back(&cell);
+      cell.push_back(&p);
    }
 #else
-   vectInt cellI = getCellI(p.r);
-   cells(cellI).push_back(&p);
+   vector<Cparticle *> &cell = cells(getCellI(p.r));
+   if (cell.size()==0) 
+      dirty_cells.push_back(&cell);
+   cell.push_back(&p);
 #endif
 }
 
@@ -1127,15 +1207,15 @@ int CdataLL::calcBufferSize(vectInt coords) {
    for (int i=0;i<NDIM;i++) {
       if (coords[i]==0) {
 #ifdef LIQ_DEM
-         bufferSizeDem *= ceil((RMAX[i]-RMIN[i])/(2.0*DEM_RADIUS));
+         bufferSizeDem *= ceil((globals.procDomain[i*2+1]-globals.procDomain[i*2])/(2.0*DEM_RADIUS));
 #endif
-         bufferSize *= ceil((RMAX[i]-RMIN[i])/PSEP);
+         bufferSize *= ceil((globals.procDomain[i*2+1]-globals.procDomain[i*2])/PSEP)+1;
       } else {
 #ifdef LIQ_DEM
          bufferSizeDem *= 2;
          bufferSize *= ceil(LIQ_DEM_COUPLING_RADIUS/PSEP);
 #endif
-         bufferSize *= ceil(2.0*H/PSEP);
+         bufferSize *= ceil(2.0*H/PSEP)+1;
       }
    }
 #ifdef LIQ_DEM
@@ -1157,9 +1237,9 @@ int CdataLL::calcPBufferSize(vectInt coords) {
    for (int i=0;i<NDIM;i++) {
       if (coords[i]==0) {
 #ifdef LIQ_DEM
-         bufferSizeDem *= ceil((RMAX[i]-RMIN[i])/(2.0*DEM_RADIUS));
+         bufferSizeDem *= ceil((globals.procDomain[i*2+1]-globals.procDomain[i*2])/(2.0*DEM_RADIUS));
 #endif
-         bufferSize *= ceil((RMAX[i]-RMIN[i])/PSEP);
+         bufferSize *= ceil((globals.procDomain[i*2+1]-globals.procDomain[i*2])/PSEP);
       } else {
 #ifdef LIQ_DEM
          bufferSizeDem *= 3;

@@ -186,13 +186,13 @@ for i in [water_glycerol,water,air]:
       print "dens = ",i.dens," kg/m^3 kinematic viscosity = ",i.visc," m^2/s porosity = ",p," RE_p = ",re," term velocity = ",termV," m/s";
 
 
-for i in [water]:
+for i in [air]:
    for res in [10]:
-      for porosity in [0.7]:
+      for porosity in [0.6]:
          re = calcRe(d,dem_dens,i.dens,i.visc);
-         writeParametersMultiGridSmallBlock(porosity,res,i.dens,i.visc,re)
+         writeParametersMultiGridBlock(porosity,res,i.dens,i.visc,re)
          compileProgram()
-         newDir = os.environ["HOME"]+"/data/sediment3D/"+baseName+"/multi"+str(porosity)+"gridSmallBlock"+str(res)+"_"+i.name+"/"
+         newDir = os.environ["HOME"]+"/data/sediment3D/"+baseName+"/multi"+str(porosity)+"gridBlock"+str(res)+"_"+i.name+"/"
          copyToDirectory(newDir)
          runSimulation(newDir)
 

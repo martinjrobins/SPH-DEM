@@ -86,7 +86,7 @@ const double VREF = 0.5*VISCOSITY*REYNOLDS_NUMBER/(POROSITY*DEM_RADIUS);
 //const double VMAX = sqrt(2*9.81*(1.0+0.5*(1-POROSITY)*(DEM_DENS-DENS)/DENS)*(RMAX[2]-RMIN[2]));
 const double VMAX = sqrt(2*9.81*(RMAX[2]-RMIN[2]));
 
-const double MAXTIME = 1.5*L/VREF;
+const double MAXTIME = 1.5*L/VREF+0.1;
 const double TIME_DROP_PARTICLE = (1.0/3.0)*MAXTIME;
 const int DAMPTIME = TIME_DROP_PARTICLE/2.0;
 #ifdef MANY_PARTICLES
@@ -104,7 +104,8 @@ const int REINIT_DENS_EVERY_N_STEPS = 500000000;
 const double CSFAC = 10.0;
 //const double PRB = pow(SPSOUND,2)*REFD/7.0;
 const double SPSOUND = CSFAC*VMAX;
-const double PRB = pow(SPSOUND,2)*DENS/(pow(DENS/REFD,GAMMA)*(GAMMA+1)-1);
+//const double PRB = pow(SPSOUND,2)*DENS/(pow(DENS/REFD,GAMMA)*(GAMMA+1)-1);
+const double PRB = pow(REFD/DENS,GAMMA-1.0)*pow(SPSOUND,2)*REFD/GAMMA;
 const double SPHBOUNDARYDENS = REFD*pow(9.81*REFD*(RMAX[2]-RMIN[2])/PRB + 1,1.0/7.0);
 
 

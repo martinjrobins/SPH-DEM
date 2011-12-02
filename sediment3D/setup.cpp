@@ -46,9 +46,11 @@ int main(int argc, char *argv[]) {
    double tsv = Nsph::viscDiffusionCondition(H,VISCOSITY);
    double tdem = Nsph::demCondition();
    double liqtdem = Nsph::liqDemCondition();
-   cout <<"dem ts = "<<tdem<<endl;
-   cout <<"liq dem ts = "<<liqtdem<<endl;
+   cout <<"dem contact = "<<50*tdem<<endl;
+   cout <<"liq dem ts= "<<20.0*liqtdem<<endl;
+   cout <<"fluid cfl= "<<tsc<<endl;
    cout <<"simulation will take "<<int((MAXTIME/tsc)+1)<<" steps according to Courant condition, "<<int((MAXTIME/tsv)+1)<<" steps according to visc diffusion condition"<<int((MAXTIME/tdem)+1)<<" steps according to the DEM condition"<<int((MAXTIME/liqtdem)+1)<<" steps according to the LIQ DEM condition"<<endl;
+
 
 #ifdef SPHBOUNDARY
    const int Z_LIM = -2;
@@ -131,7 +133,7 @@ int main(int argc, char *argv[]) {
       if (i==2) {
 #ifdef IN_WATER
          min[i] = RMIN[i] + (RMAX[i]-RMIN[i])/2 - PSEP;
-         max[i] = RMAX[i] - 2.0*PSEP;
+         max[i] = WMAX - 2.0*PSEP;
 #else
          min[i] = WMAX+PSEP;
          max[i] = WMAX+PSEP+(RMAX[i]-RMIN[i])/4;
@@ -161,7 +163,11 @@ int main(int argc, char *argv[]) {
    p.tag = ps.size()+1;
    p.r[0] = (RMAX[0]-RMIN[0])/2;
    p.r[1] = (RMAX[1]-RMIN[1])/2;
+#ifdef IN_WATER
+   p.r[2] = WMAX*0.8;
+#else
    p.r[2] = WMAX+(RMAX[2]-RMIN[2])/8.0;
+#endif
    p.dens = DEM_DENS;
    p.h = DEM_RADIUS;
    p.mass = DEM_VOL*DEM_DENS;

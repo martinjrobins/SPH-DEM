@@ -203,7 +203,9 @@ void CdataLL::neighbours() {
       Cparticle *pp = ppInfo->p;
       if (Iffunct(*pp)) {
          if (ppInfo->neighbrs.empty()) {
+            //cout <<globals.mpiRank<<" before calc neigh"<<endl;
             calcNeighbours(ppInfo->neighbrs,*pp);
+            //cout <<globals.mpiRank<<" after calc neigh"<<endl;
          }
          //for each neighbours run function
          for (vector<Cparticle *>::iterator pNeighbr = ppInfo->neighbrs.begin();pNeighbr!=ppInfo->neighbrs.end();pNeighbr++) {

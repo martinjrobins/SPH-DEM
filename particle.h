@@ -75,6 +75,7 @@ class Cparticle {
 #endif
 #ifdef LIQ_DEM
       porosity = 1.0;
+      dporositydt = 0.0;
       gHead = 0;
       fdrag = 0.0;
       for (int i=0;i<TWIN_N;i++) {
@@ -125,7 +126,6 @@ class Cparticle {
       norm3 = 0;
 #endif
       concave = true;
-      dist = 0;
    };
 
    /*
@@ -149,6 +149,7 @@ class Cparticle {
    Cparticle& operator=(const Cparticle &p) {
 #ifdef LIQ_DEM
       porosity = p.porosity;
+      dporositydt = p.dporositydt;
       gHead = p.gHead;
       fdrag = p.fdrag;
       for (int i=0;i<TWIN_N;i++) {
@@ -187,7 +188,6 @@ class Cparticle {
       norm3 = p.norm3;
 #endif
       concave = p.concave;
-      dist = p.dist;
       vort = p.vort;
       h = p.h;
       dens = p.dens;
@@ -237,6 +237,7 @@ class Cparticle {
 #endif
 #ifdef LIQ_DEM
    double porosity;
+   double dporositydt;
    int gHead;
    vect fdrag;
    vect gVect[TWIN_N];
@@ -254,7 +255,6 @@ class Cparticle {
 #ifdef _3D_
    vect norm3;
 #endif
-   double dist;
    bool concave;
    vect vort;
    double h;
@@ -316,7 +316,7 @@ inline CghostData& CghostData::operator=(const Cparticle &p) {
          h = p.h;
          tag = p.tag;
          iam = p.iam;
-         norm1 = p.norm1*(p.dist+1);
+         norm1 = p.norm1;
          norm2 = p.norm2;
 #ifdef _3D_
          norm3 = p.norm3;
@@ -351,12 +351,11 @@ inline Cparticle& Cparticle::operator=(const CghostData &g) {
       dens = g.dens;
       tag = g.tag;
       double r1 = len(g.norm1);
-      norm1 = g.norm1/r1;
+      norm1 = g.norm1;
       norm2 = g.norm2;
 #ifdef _3D_
       norm3 = g.norm3;
 #endif
-      dist = r1-1;
       concave = g.concave;
       iam = g.iam;
       return *this;

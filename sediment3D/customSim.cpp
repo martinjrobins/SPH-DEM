@@ -49,7 +49,12 @@ inline void setFluidVel(Cparticle &p, vector<Cparticle *> &neighbrs,CglobalVars 
 
 inline void addCustomBoundaries(Cparticle &p,CglobalVars &g) {
    const double overlap = RMIN[2]+DEM_RADIUS-p.r[2];
-   if (overlap>0.0) {
+#ifdef LUBRICATION
+   const double overlap_check = -DEM_REDUCED_RADIUS*(p.shepSum>0.5);
+#else
+   const double overlap_check = 0.0;
+#endif
+   if (overlap>overlap_check) {
       const vect normal(0.0,0.0,1.0);
       const double overlap_dot = -p.vhat[2];
       const vect fNorm = Nsph::demNormal(overlap,overlap_dot,normal)/p.mass;
@@ -71,8 +76,11 @@ void CcustomSim::beforeMiddle(double newTime) {
 
 void CcustomSim::beforeEnd(double newTime) { 
    data->traverse<addGravity,Nsph::ifDem>();
+   data->traverse<addCustomBoundaries,Nsph::ifDem>();
+}
+
+void CcustomSim::afterEnd(double newTime) { 
    if (data->globals.time <= TIME_DROP_PARTICLE) {
       data->traverse<freezeParticles,Nsph::ifDem>();
    }
-   data->traverse<addCustomBoundaries,Nsph::ifDem>();
 }

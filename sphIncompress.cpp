@@ -34,7 +34,7 @@ void CsphIncompress::start() {
       }
    }
 
-   data->traverse<initSums,ifSphOrSphBoundary>();
+   data->traverse<initSumsMiddle,ifSphOrSphBoundary>();
 }
 
 void CsphIncompress::middle() {
@@ -53,7 +53,9 @@ void CsphIncompress::middle() {
    data->reset();
 #endif
 #ifndef SMOOTHING
+   //cout <<"rank = "<<data->globals.mpiRank<<"before reset "<<endl;
    data->reset();
+   //cout <<"rank = "<<data->globals.mpiRank<<"after reset "<<endl;
 #endif
 #ifdef CORRECTED_GRADIENT
    data->neighboursGroup<calcInvM,ifSphOrSphBoundary>();
@@ -63,11 +65,14 @@ void CsphIncompress::middle() {
    data->syncParticlesBetweenProcs<double,readOmega,writeOmega>();
 #endif
    
+   timeval t1,t2;
+   gettimeofday(&t1,NULL);
 #ifdef LIQ_DEM
    data->traverse<initPorosityAndDrag,ifSphOrSphBoundaryOrGhost>();
    data->neighboursGroupCoupling<calcPorosityAndDrag,ifDem>();
    data->reverseSyncParticlesBetweenProcs<vect,readFdrag,sumFdrag>();
    data->reverseSyncParticlesBetweenProcs<double,readPorosity,sumPorosity>();
+   data->reverseSyncParticlesBetweenProcs<double,read_dPorositydt,sum_dPorositydt>();
    data->neighboursGroupAtRadius<finalisePorosityAndDrag,ifSphOrSphBoundary>(LIQ_DEM_COUPLING_RADIUS);
    data->traverse<setPorosityForBoundary,ifBoundary>();
    data->syncParticlesBetweenProcs<double,readPorosity,writePorosity>();
@@ -78,8 +83,6 @@ void CsphIncompress::middle() {
 #endif
    data->traverse<calcPressSpsoundPdr2,ifSphOrSphBoundaryOrGhost>();	
 
-   timeval t1,t2;
-   gettimeofday(&t1,NULL);
 #ifdef SLK
    data->neighboursGroup<calcGLeastSquares,ifSphOrSphBoundary>();
    data->syncParticlesBetweenProcs<vectTensor,readG,writeG>();
@@ -88,7 +91,9 @@ void CsphIncompress::middle() {
    data->neighboursGroupScaled<smoothViscV,ifSphOrSphBoundary>();
    data->syncParticlesBetweenProcs<vect,readViscV,writeViscV>();
 #endif
+   //cout <<"rank = "<<data->globals.mpiRank<<"before force "<<endl;
    data->neighbours<calcForce,ifSphOrSphBoundary>();
+   //cout <<"rank = "<<data->globals.mpiRank<<"after force"<<endl;
 #ifdef BACKGROUND_PRESSURE_FORCE
    data->traverse<addBackgroundPressure,ifSphOrSphBoundary>();
 #endif
@@ -123,16 +128,16 @@ void CsphIncompress::middle() {
    data->traverse<kick,ifSphOrSphBoundary>(0.5*oldDt,0.5*data->globals.dt);
    
 
+   data->traverse<initSumsEnd,ifSphOrSphBoundary>();
 #ifdef LIQ_DEM
-   data->traverse<initSums,ifDem>();
+   data->traverse<driftRAndKick,ifDem>();
+   data->traverse<initSumsMiddle,ifDem>();
 #endif
 }
 
 void CsphIncompress::end() {
 
-#ifdef LIQ_DEM
-   data->traverse<driftRAndKick,ifDem>();
-#endif
+
 #ifndef SMOOTHING
    data->traverse<driftR,ifSphOrSphBoundary>();
 #endif

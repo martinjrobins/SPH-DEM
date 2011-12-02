@@ -59,7 +59,7 @@ int main(int argc, char *argv[]) {
    int NXwall = int((L1+L2)/PSEP);
    cout <<"ENDPERIODICCPU = "<<ENDPERIODICCPU<<endl;
 
-   for (int i=0;i<NX-L4/PSEP;i++) {
+   for (int i=0;i<NXP;i++) {
       cout <<"i = "<<i<<"p.r[0] = "<<(i+0.5)*PSEP+RMIN[0]<<endl;
       for (int j=(NY/2.0)-PY;j<(NY/2.0)+PY;j++) {
          for (int k=0;k<NZ;k++) {
@@ -110,7 +110,7 @@ int main(int argc, char *argv[]) {
    cout << "Finished first section" << endl;
    cout << "Total number of particles = " << ps.size() << endl;
 
-   for (int i=NX-L4/PSEP;i<NX;i++) {
+   for (int i=NXP;i<NX;i++) {
       cout <<"i = "<<i<<"p.r[0] = "<<(i+0.5)*PSEP+RMIN[0]<<endl;
       for (int j=0;j<NY;j++) {
          for (int k=0;k<NZ;k++) {
@@ -150,7 +150,7 @@ int main(int argc, char *argv[]) {
             p.iam = sph;
             p.norm1 = 0;
             p.norm3 = 0;
-            if ((p.iam==sph)&&((p.r[1] < PSEP + 0.5*(p.r[0]-NX*PSEP)/L5)||(p.r[1] > 1-PSEP-0.5*(p.r[0]-NX*PSEP)/L5))) continue;
+            if ((p.iam==sph)&&((p.r[1] < PSEP + 0.5*WIDTH*(p.r[0]-NX*PSEP)/L5)||(p.r[1] > WIDTH-PSEP-0.5*WIDTH*(p.r[0]-NX*PSEP)/L5))) continue;
             if ((p.iam==sph)&&(p.r[2] > H1)) continue;
             ps.push_back(p);
          }
@@ -159,30 +159,33 @@ int main(int argc, char *argv[]) {
 
    cout << "Total number of particles = " << ps.size() << endl;
    vect norm1;
-   norm1 = L4,0.5,0;
+   norm1 = L5,WIDTH/2.0,0;
+   vect norm1Norm = norm1/len(norm1);
+   //norm1 = norm1 - PSEP*norm1/len(norm1);
    vect norm2;
-   norm2 = 0,0,H1+H2+H3+PSEP;
+   norm2 = 0,0,WALLH+PSEP;
    vect initPos;
-   initPos = PSEP*NX,0.0001*PSEP,-0.5*PSEP;
+   initPos = PSEP*NX,0,-0.5*PSEP;
+   //initPos = initPos + norm1*PSEP/len(norm1);
    vect neighbrNorm1,neighbrNorm2,neighbrNorm3,neighbrNorm4;
-   neighbrNorm1 = -1,0,0;
+   neighbrNorm1 = 0,0,0;
    neighbrNorm2 = 0;
    vect tmp;
-   tmp = L4,-0.5,0;
+   tmp = L5,-WIDTH/2.0,0;
    vect tmpNorm = tmp/len(tmp);
    vect norm2Norm = norm2/len(norm2);
    neighbrNorm3 = cross(tmpNorm,norm2Norm);
    neighbrNorm4 = 0.0;
 
-   Nmisc::boundaryPlane(ps,norm1,norm2,neighbrNorm1,neighbrNorm2,neighbrNorm3,neighbrNorm4,initPos,PSEP,true);
+   Nmisc::boundaryPlane(ps,norm1,norm2,neighbrNorm1,false,neighbrNorm2,false,neighbrNorm3,true,neighbrNorm4,false,initPos,PSEP,true);
 
    norm1 = tmp;
    initPos = PSEP*NX,RMAX[1]-0.0001*PSEP,-0.5*PSEP;
-   neighbrNorm1 = -1,0,0;
+   neighbrNorm1 = cross(norm2Norm,norm1Norm);
    neighbrNorm2 = 0,0,0;
    neighbrNorm3 = 0.0;
    neighbrNorm4 = 0.0;
-   Nmisc::boundaryPlane(ps,norm1,norm2,neighbrNorm1,neighbrNorm2,neighbrNorm3,neighbrNorm4,initPos,PSEP,false);
+   Nmisc::boundaryPlane(ps,norm1,norm2,neighbrNorm1,false,neighbrNorm2,false,neighbrNorm3,false,neighbrNorm4,false,initPos,PSEP,false);
 
              
    cout << "Total number of particles = " << ps.size() << endl;
@@ -200,7 +203,7 @@ int main(int argc, char *argv[]) {
    }
    Nmisc::splitDomain(pps,split,vps,vprocDomain,vprocNeighbrs);
 
-   const double width1 = (L1+L2+L3)/(ENDPERIODICCPU+1);
+   const double width1 = (NXP)*PSEP/(ENDPERIODICCPU+1);
    const double width2 = (L4+L5)/(NCPU-ENDPERIODICCPU-1);
 
    for (int i=0;i<=ENDPERIODICCPU;i++) {

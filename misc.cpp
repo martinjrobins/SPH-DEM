@@ -46,7 +46,7 @@ void Nmisc::addRandomDEMparticlesCyl(CdataLL *data,const vect origin,const doubl
       if (pow(p.r[0],2)+pow(p.r[1],2) > radius2) continue;
       p.tag = data->getParticles()->size()+1;
       p.dens = DEM_DENS;
-      p.h = DEM_RADIUS;
+      p.h = DEM_SEARCH_RADIUS;
       p.mass = DEM_VOL*DEM_DENS;
       p.v = 0.0;
       p.vhat = p.v;
@@ -91,7 +91,7 @@ void Nmisc::addRandomDEMparticles(CdataLL *data,const double minRange[NDIM],cons
       }
       p.tag = data->getParticles()->size()+1;
       p.dens = DEM_DENS;
-      p.h = DEM_RADIUS;
+      p.h = DEM_SEARCH_RADIUS;
       p.mass = DEM_VOL*DEM_DENS;
       p.v = 0.0;
       p.vhat = p.v;
@@ -149,7 +149,7 @@ void Nmisc::addGridDEMparticles(vector<Cparticle> &ps,const double minRange[NDIM
 #endif
             p.tag = ps.size()+1;
             p.dens = DEM_DENS;
-            p.h = DEM_RADIUS;
+            p.h = DEM_SEARCH_RADIUS;
             p.mass = DEM_VOL*DEM_DENS;
             p.v = 0.0;
             p.vhat = p.v;
@@ -189,7 +189,6 @@ void Nmisc::boundaryLine(vector<Cparticle> &ps,vect *points,vect *normals,bool *
          p.v = 0,0;
          p.iam = iam;
          p.norm1 = normals[i];
-         p.dist = 0;
          ps.push_back(p);
          p.norm2 = 0.0;
       }
@@ -197,7 +196,7 @@ void Nmisc::boundaryLine(vector<Cparticle> &ps,vect *points,vect *normals,bool *
 }
 
 #ifdef _3D_
-void Nmisc::boundaryPlane(vector<Cparticle> &ps,vect side1,vect side2,vect neighbrNorm1,vect neighbrNorm2,vect neighbrNorm3,vect neighbrNorm4,vect initPos,double thisPsep,bool flipNorm) {
+void Nmisc::boundaryPlane(vector<Cparticle> &ps,vect side1,vect side2,vect neighbrNorm1, bool smoothEdge1, vect neighbrNorm2, bool smoothEdge2,vect neighbrNorm3, bool smoothEdge3,vect neighbrNorm4, bool smoothEdge4,vect initPos,double thisPsep,bool flipNorm) {
    double len1 = len(side1);
    double len2 = len(side2);
    int wN1 = floor(len1/thisPsep);
@@ -247,29 +246,50 @@ void Nmisc::boundaryPlane(vector<Cparticle> &ps,vect side1,vect side2,vect neigh
          p.norm1 = cross(norm1,norm2);
          if (flipNorm) p.norm1 = -p.norm1;
          p.norm3 = norm2;
+         p.norm2 = 0;
          if (i==0) {
-            vect normtmp = (p.norm1*count + neighbrNorm1)/(count+1);
             p.norm3 = cross(p.norm1,neighbrNorm1);
-            p.norm1 = normtmp;
+            if (smoothEdge1) {
+               vect normtmp = (p.norm1*count + neighbrNorm1)/(count+1);
+               p.norm1 = normtmp;
+               count++;
+            } else {
+               p.norm2 = neighbrNorm1;
+            }
+
          }
          if (i==wN1) {
-            vect normtmp = (p.norm1*count + neighbrNorm3)/(count+1);
             p.norm3 = cross(p.norm1,neighbrNorm3);
-            p.norm1 = normtmp;
+            if (smoothEdge3) {
+               vect normtmp = (p.norm1*count + neighbrNorm3)/(count+1);
+               p.norm1 = normtmp;
+               count++;
+            } else {
+               p.norm2 = neighbrNorm3;
+            }
          }
          if (j==0) {
-            vect normtmp = (p.norm1*count + neighbrNorm2)/(count+1);
             p.norm3 = cross(p.norm1,neighbrNorm2);
-            p.norm1 = normtmp;
+            if (smoothEdge2) {
+               vect normtmp = (p.norm1*count + neighbrNorm2)/(count+1);
+               p.norm1 = normtmp;
+               count++;
+            } else {
+               p.norm2 = neighbrNorm2;
+            }
          }
          if (j==wN2) {
-            vect normtmp = (p.norm1*count + neighbrNorm4)/(count+1);
             p.norm3 = cross(p.norm1,neighbrNorm4);
-            p.norm1 = normtmp;
+            if (smoothEdge2) {
+               vect normtmp = (p.norm1*count + neighbrNorm4)/(count+1);
+               p.norm1 = normtmp;
+               count++;
+            } else {
+               p.norm2 = neighbrNorm4;
+            }
          }
          p.norm1 = p.norm1/len(p.norm1);
          p.norm3 = p.norm3/len(p.norm3);
-         p.norm2 = 0;
          ps.push_back(p);
       }
    }
@@ -316,7 +336,6 @@ void Nmisc::boundaryCircle(vector<Cparticle> &ps,const vect &origin,const double
          } else {
             p.norm2 = 0,0,0;
          }
-         p.dist = 0;
          ps.push_back(p);
       }
    }
@@ -351,7 +370,6 @@ void Nmisc::boundaryCylinderNoTopBottom(vector<Cparticle> &ps,const vect &origin
          p.norm3[1] = -cos(theta);
          p.norm3[2] = 0;
          p.norm2 = 0,0,0;
-         p.dist = 0;
          ps.push_back(p);
       }
    }

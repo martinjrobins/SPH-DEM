@@ -14,10 +14,11 @@ const double PI = 3.14159265;
 
 const int STARTTAG = 1;
 const int ENDTAG = 2;
-const int NY = PY*2*(RY*2+1);
+const int NY = (PY*2+1)*(RY*2+1);
 const double PSEP = WIDTH/NY;
 const int NX = (L1+L2+L3+L4)/PSEP;
 const int NZ = int((H1+H2+H3)/PSEP);
+const int NXP = NX-L4/PSEP;
 
 
 const double LL = L1+L2+L3;
@@ -25,7 +26,7 @@ const double TL = LL + (L4+L5)*(RY*2+1);
 const int ENDPERIODICCPU = int((LL/TL)*NCPU+0.5)-1;
 
 const double RMIN[NDIM] = {0,0,0};
-const double RMAX[NDIM] = {L1+L2+L3+L4+L5,WIDTH,H1+H2+H3};
+const double RMAX[NDIM] = {L1+L2+L3+L4+L5,WIDTH,WALLH*1.5};
 
 
 //#define MODIFY_BFORCE_WITH_STILL_LEVEL
@@ -63,7 +64,7 @@ const double ALPHA_ARTIFICIAL = 0.1;
 //#define MORRIS_SPH_BOUNDARY
 //#define CHECK_FOR_NAN
 const double DAMPTIME = WALLUP/2.0;
-const int RESTART_EVERY_N_STEPS = 250;
+const int RESTART_EVERY_N_STEPS = 100;
 const int REINIT_DENS_EVERY_N_STEPS = 20000000;
 
 

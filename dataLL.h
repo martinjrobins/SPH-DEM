@@ -29,6 +29,7 @@ public:
       unsigned long key;
       vector<Cparticle *> neighbrs;
 
+
       CpInfo() {}
 
       CpInfo(const CpInfo &pInfo) {
@@ -300,12 +301,13 @@ private:
        * maps from position to bucket cell index
        */
       inline vectInt getCellI(vect r) {
-         return static_cast<vectInt>((r-rmin)/(KERNAL_RADIUS*hmax)+3);
+         return static_cast<vectInt>((r-cell_min)/(KERNAL_RADIUS*sph_search_radius)+3);
       }
 
 #ifdef LIQ_DEM
       inline vectInt dem_getCellI(vect r) {
-         return static_cast<vectInt>((r-rmin)/(2*DEM_RADIUS)+3*H/DEM_RADIUS-1);
+         //return static_cast<vectInt>((r-rmin)/(2*DEM_SEARCH_RADIUS)+3*H/DEM_SEARCH_RADIUS-1);
+         return static_cast<vectInt>((r-cell_min)/(2*DEM_SEARCH_RADIUS)+3*H/DEM_SEARCH_RADIUS-1);
       }
 #endif
 
@@ -346,8 +348,11 @@ private:
       vect rmax;
       vect rmin;
       double hmax;
+      double sph_search_radius;
 
       Array<vector<Cparticle *>,NDIM> cells; //bucket list
+      vect cell_min,cell_max;
+      vector<vector<Cparticle *>*> dirty_cells;
 #ifdef LIQ_DEM
       Array<vector<Cparticle *>,NDIM> dem_cells; //bucket list
 #endif

@@ -31,6 +31,8 @@ const double REFD = 1000.0;
 //#define QUINTIC
 #define WENDLAND
 #define VISC_MORRIS
+//#define VISC_ARTIFICIAL
+//const double ALPHA_ARTIFICIAL = 1.0;
 //#define HANN
 //#define VISC_MONAGHAN
 //#define VISC_CLEARY
@@ -105,7 +107,7 @@ const double BFAC = 1.00;
 //const double H = HFAC*PSEP;
 const double H = HFAC*PSEP;
 
-const double LIQ_DEM_COUPLING_RADIUS = 3.9999*H/pow(POROSITY,1.0/NDIM);
+const double LIQ_DEM_COUPLING_RADIUS = 1.9999*H/pow(POROSITY,1.0/NDIM);
 
 const double APPROX_SMOOTH_GRID_SIZE = H;
 const double SMOOTH_GRID_SIZE = (BMAX[0]-BMIN[0])/floor((BMAX[0]-BMIN[0])/APPROX_SMOOTH_GRID_SIZE+0.5);

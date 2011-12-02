@@ -51,11 +51,17 @@ class CsphIncompress {
       static double readPorosity(Cparticle &p) {
          return p.porosity;
       }
+      static double read_dPorositydt(Cparticle &p) {
+         return p.dporositydt;
+      }
       static void writePorosity(Cparticle &p,double porosity) {
          p.porosity = porosity;
       }
       static void sumPorosity(Cparticle &p,double porosity) {
          p.porosity += porosity;
+      }
+      static void sum_dPorositydt(Cparticle &p,double dporositydt) {
+         p.dporositydt += dporositydt;
       }
       static vect readFdrag(Cparticle &p) {
          return p.fdrag;
@@ -592,7 +598,6 @@ class CsphIncompress {
                cout <<"ERROR: found nan for oldr = "<<oldr<<" tag = "<<p.tag<<endl;
          }
 #endif
-
       }
       
       static void driftRAndKick(Cparticle &p,CglobalVars &g) {
@@ -706,14 +711,13 @@ class CsphIncompress {
 #endif
       }
 
-      static void initSums(Cparticle &p,CglobalVars &g) {
+      static void initSumsMiddle(Cparticle &p,CglobalVars &g) {
          //if (p.tag==1000) cout << "initSums:"<<endl;
          p.f = 0.0;
          p.fp = 0.0;
          p.fv = 0.0;
          p.fb = 0.0;
          p.ff = 0.0;
-         p.dddt = 0.0;
          p.dudt = 0.0;
          p.deViscFdt = 0.0;
          p.deViscBdt = 0.0;
@@ -726,6 +730,10 @@ class CsphIncompress {
          p.dRhoKernel = 0;
          p.dMassDiff = 0;
 #endif
+      }
+
+      static void initSumsEnd(Cparticle &p,CglobalVars &g) {
+         p.dddt = 0.0;
       }
 
       static void calcEnergies(Cparticle &p,CglobalVars &g) {

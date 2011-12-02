@@ -18,19 +18,24 @@ inline void addCustomBoundaries(Cparticle &p,CglobalVars &g) {
    const double overlap1 = CYLINDER_ORIGIN[2]+DEM_RADIUS-p.r[2];
    const double overlap2 = p.r[2]-CYLINDER_ORIGIN[2]-CYLINDER_HEIGHT+DEM_RADIUS;
    const double overlap3 = sqrt(pow(p.r[0],2)+pow(p.r[1],2))-CYLINDER_RADIUS+DEM_RADIUS;
-   if (overlap1>0) {
+#ifdef LUBRICATION
+   const double overlap_check = -DEM_REDUCED_RADIUS*(p.shepSum>0.5);
+#else
+   const double overlap_check = 0.0;
+#endif
+   if (overlap1>overlap_check) {
       const double overlap_dot = -p.vhat[2];
       vect normal = 0.0;
       normal[2] = 1.0;
       p.fb += Nsph::demNormal(overlap1,overlap_dot,normal)/p.mass;
       //cout << "overlap = "<<overlap1<<" overlap_dot = "<< overlap_dot<<" fb = "<<p.fb<<endl;
-   } else if (overlap2>0) {
+   } else if (overlap2>overlap_check) {
       const double overlap_dot = p.vhat[2];
       vect normal = 0.0;
       normal[2] = -1.0;
       p.fb += Nsph::demNormal(overlap2,overlap_dot,normal)/p.mass;
    }
-   if (overlap3>0) {
+   if (overlap3>overlap_check) {
       const double theta = atan2(p.r[1],p.r[0]);
       vect normal = 0.0;
       normal[0] = -cos(theta);
@@ -111,7 +116,7 @@ void CcustomSim::afterEnd(double newTime) {
       if (start) {
          vect newOrigin = CYLINDER_ORIGIN;
          newOrigin[2] -= INLET_HEIGHT;
-         sphBoundaryCircle(data,newOrigin,0,int((INLET_RADIUS-1.5*PSEP)/PSEP)*PSEP);
+         sphBoundaryCircle(data,newOrigin,0,int((INLET_RADIUS-0.9*PSEP)/PSEP)*PSEP);
       }
       start = true;
       data->traverse<setupInflow,Nsph::ifSphBoundary>();
@@ -125,16 +130,13 @@ void CcustomSim::beforeMiddle(double newTime) {
       doOnce = true;
    }
    data->globals.maxdt = 0.5*PSEP/INFLOW_VEL;
-   data->traverse<addGravity,Nsph::ifSphOrDem>();
-#ifdef LIQ_DEM
-   data->traverse<addCustomBoundaries,Nsph::ifDem>();
-#endif
+   data->traverse<addGravity,Nsph::ifSph>();
    double dt = newTime-time;
    if ((newTime>TIME_START_INLET)&&(floor(time/(PSEP/INFLOW_VEL))<floor(newTime/(PSEP/INFLOW_VEL)))) {
       if (start) {
          vect newOrigin = CYLINDER_ORIGIN;
          newOrigin[2] -= INLET_HEIGHT;
-         sphBoundaryCircle(data,newOrigin,0,int((INLET_RADIUS-1.5*PSEP)/PSEP)*PSEP);
+         sphBoundaryCircle(data,newOrigin,0,int((INLET_RADIUS-0.9*PSEP)/PSEP)*PSEP);
       }
       start = true;
       data->traverse<setupInflow,Nsph::ifSphBoundary>();
@@ -143,13 +145,17 @@ void CcustomSim::beforeMiddle(double newTime) {
    //data->traverse<driftR,Nsph::ifSphBoundary>(dt);
 }
 void CcustomSim::beforeEnd(double newTime) {
+#ifdef LIQ_DEM
+   data->traverse<addGravity,Nsph::ifDem>();
+   data->traverse<addCustomBoundaries,Nsph::ifDem>();
+#endif
    data->traverse<setupInflowTransition,Nsph::ifSphOrSphBoundary>();
    double dt = newTime-time;
    if ((newTime>TIME_START_INLET)&&(floor(time/(PSEP/INFLOW_VEL))<floor(newTime/(PSEP/INFLOW_VEL)))) {
       if (start) {
          vect newOrigin = CYLINDER_ORIGIN;
          newOrigin[2] -= INLET_HEIGHT;
-         sphBoundaryCircle(data,newOrigin,0,int((INLET_RADIUS-1.5*PSEP)/PSEP)*PSEP);
+         sphBoundaryCircle(data,newOrigin,0,int((INLET_RADIUS-0.9*PSEP)/PSEP)*PSEP);
       }
       start = true;
       data->traverse<setupInflow,Nsph::ifSphBoundary>();

@@ -10,6 +10,7 @@ def writeParametersSingle(res,dens,visc,re):
    filename = "parameters.h"
    file = open(filename,"w")
    file.write("#define LIQ_DEM_ONE_WAY_COUPLE\n")
+   file.write("#define IN_WATER\n")
    file.write("#define LIQ_DEM_SIMPLE_DRAG\n")
    file.write("const double POROSITY = 1.0;\n")
    file.write("const int NX = "+str(res)+";\n")
@@ -22,6 +23,7 @@ def writeParametersSingle(res,dens,visc,re):
 def writeParametersSingleTwoWay(res,dens,visc,re):
    filename = "parameters.h"
    file = open(filename,"w")
+   file.write("#define IN_WATER\n")
    file.write("#define LIQ_DEM_SIMPLE_DRAG\n")
    file.write("const double POROSITY = 1.0;\n")
    file.write("const int NX = "+str(res)+";\n")
@@ -33,6 +35,7 @@ def writeParametersSingleTwoWay(res,dens,visc,re):
 def writeParametersSingleDiFelise(res,dens,visc,re):
    filename = "parameters.h"
    file = open(filename,"w")
+   file.write("#define IN_WATER\n")
    file.write("const double POROSITY = 1.0;\n")
    file.write("const int NX = "+str(res)+";\n")
    file.write("const double VISCOSITY = "+str(visc)+";\n")
@@ -44,6 +47,7 @@ def writeParametersSingleDiFelise(res,dens,visc,re):
 def writeParametersSingleAM(res,dens,visc,re):
    filename = "parameters.h"
    file = open(filename,"w")
+   file.write("#define IN_WATER\n")
    #file.write("#define LIQ_DEM_ONE_WAY_COUPLE\n")
    #file.write("#define LIQ_DEM_SIMPLE_DRAG\n")
    file.write("#define LIQ_DEM_ADDED_MASS\n")
@@ -57,6 +61,7 @@ def writeParametersSingleAM(res,dens,visc,re):
 def writeParametersMulti(p,dens,visc,re):
    filename = "parameters.h"
    file = open(filename,"w")
+   file.write("#define IN_WATER\n")
    file.write("#define MANY_PARTICLES\n")
    file.write("const double POROSITY = "+str(p)+";\n")
    file.write("const double DEM_DENS = DENS*2.5;\n")
@@ -83,6 +88,7 @@ def writeParametersMultiGrid(p,res,dens,visc,re):
 def writeParametersMultiGridBlock(p,res,dens,visc,re):
    filename = "parameters.h"
    file = open(filename,"w")
+   file.write("#define IN_WATER\n")
    file.write("#define MANY_PARTICLES\n")
    file.write("#define GRID_OF_DEM\n")
    file.write("#define DEM_BLOCK\n")
@@ -178,15 +184,14 @@ d = 100.0e-6;
 dem_dens = 2500.0;
 
 for i in [water_glycerol,water,air]:
-   re = calcRe2(d,dem_dens,i.dens,i.visc);
-   termV = re*i.visc/(d);
-   print "dens = ",i.dens," kg/m^3 kinematic viscosity = ",i.visc," m^2/s porosity = ",1.0," RE_p = ",re," term velocity = ",termV," m/s";
+   #re = calcRe2(d,dem_dens,i.dens,i.visc);
+   #termV = re*i.visc/(d);
+   #print "dens = ",i.dens," kg/m^3 kinematic viscosity = ",i.visc," m^2/s porosity = ",1.0," RE_p = ",re," term velocity = ",termV," m/s";
    for p in [0.6,0.7,0.8,0.855,0.9,1.0]:
       re = calcRe(d,dem_dens,i.dens,i.visc,p);
       termV = re*i.visc/(d);
       print "dens = ",i.dens," kg/m^3 kinematic viscosity = ",i.visc," m^2/s porosity = ",p," RE_p = ",re," term velocity = ",termV," m/s";
 
-"""
 for i in [water_glycerol,water,air]:
    re = calcRe(d,dem_dens,i.dens,i.visc,1.0);
    writeParametersSingle(10,i.dens,i.visc,re)
@@ -204,6 +209,16 @@ for i in [water]:
       newDir = os.environ["HOME"]+"/data/sediment3D/"+baseName+"/singleTwoWay"+str(res)+"_"+i.name+"/"
       copyToDirectory(newDir)
       runSimulation(newDir)
+
+for i in [air,water_glycerol]:
+   for res in [10]:
+      re = calcRe(d,dem_dens,i.dens,i.visc,1.0);
+      writeParametersSingleTwoWay(res,i.dens,i.visc,re)
+      compileProgram()
+      newDir = os.environ["HOME"]+"/data/sediment3D/"+baseName+"/singleTwoWay"+str(res)+"_"+i.name+"/"
+      copyToDirectory(newDir)
+      runSimulation(newDir)
+
 
 for i in [water_glycerol,water,air]:
    for res in [10]:
@@ -242,7 +257,7 @@ for i in [water_glycerol,water,air]:
          newDir = os.environ["HOME"]+"/data/sediment3D/"+baseName+"/multi"+str(porosity)+"gridBlock"+str(res)+"_"+i.name+"/"
          copyToDirectory(newDir)
          runSimulation(newDir)
-"""
+
 for i in [water_glycerol,water,air]:
    for res in [10]:
       for porosity in [0.8]:

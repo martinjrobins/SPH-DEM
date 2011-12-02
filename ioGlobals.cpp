@@ -31,7 +31,7 @@ int CioGlobals::myGetLine(CglobalVars *g) {
 
       //TODO: 2D specific!!!!
       double tmp;
-      ss >> currStep >> g->sphStep >> g->time >> g->linMom[0]>>g->linMom[1]>>g->angMom>>g->eKE>>g->eBForce>>g->eElast>>g->eElastExact>>g->eViscF>>g->eViscB>>g->eFF>>g->eTotal>>tmp>>tmp>>tmp>>tmp>>tmp>>tmp>>g->maxV>>g->aveDens>>g->varDens>>g->aveDensFromMass>>g->n>>g->nSph>>g->maxF>>g->maxFF>>g->rmsFF>>g->edElastdt>>g->edViscFdt>>g->edFFdt;
+      ss >> currStep >>g->sphStep >> g->time >> g->linMom[0]>>g->linMom[1]>>g->angMom>>g->eKE>>g->eBForce>>g->eElast>>g->eElastExact>>g->eViscF>>g->eViscB>>g->eFF>>g->eTotal>>tmp>>tmp>>tmp>>tmp>>tmp>>tmp>>g->maxV>>g->aveDens>>g->varDens>>g->aveDensFromMass>>g->n>>g->nSph>>g->maxF>>g->maxFF>>g->rmsFF>>g->edElastdt>>g->edViscFdt>>g->edFFdt;
    }
    return currStep;
 }

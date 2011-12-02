@@ -323,6 +323,7 @@ namespace Nsph {
 #ifdef CORRECTED_GRADIENT
          const vect ret = product(pa.invM,(dr*F(q,h)-pa.sumGrad/pa.sum)/pa.sum);
 #else
+         if (q==0) cout<<"q=0, r = "<<pa.r<<" iam = "<<pa.iam<<" iam = "<<pb.iam<<" tag = "<<pa.tag<<" tag = "<<pb.tag<<endl;
          const vect ret = dr*F(q,h);
 #endif
 #ifdef VAR_H_CORRECTION
@@ -685,13 +686,6 @@ namespace Nsph {
          }
       }
       
-      inline void calcMorrisDv(Cparticle &pa, Cparticle &pb,const vect &norm,const vect &dx,vect &dv) {
-         double dista = dot(dx,norm)-pb.dist;
-         //dv = min(BETA_MAX,1.0+pb.dist/dista)*pa.v;
-         //in this case pb.v is the velocity of the boundary
-         dv = (1.0+pb.dist/dista)*(pa.v-pb.v);
-      }
-
       inline void calcRadialBoundaryForces2D(Cparticle &p, Cparticle &bp,CglobalVars &g) {
          
          const double bforce = 1;
@@ -754,7 +748,7 @@ namespace Nsph {
             */
 
             //double q = abs(rperp)/(2.0*hav);
-            double q = abs(rperp)/hav;
+            double q = abs(rperp)/(0.5*PSEP);
             vect fb = 0.0;
             if (q < 2.0) {
 
@@ -1154,6 +1148,7 @@ namespace Nsph {
       }
       inline void initPorosityAndDrag(Cparticle &p,CglobalVars &g) {
          p.porosity = 0.0;
+         p.dporositydt = 0.0;
          p.fdrag = 0.0;
       }
 
@@ -1173,8 +1168,10 @@ namespace Nsph {
             }
          }
          p.porosity = 1.0-p.porosity/p.shepSum;
-         //p.porosity = 1.0-p.porosity;
+         if (p.porosity<0.37) p.porosity = 0.37;
          p.f += p.fdrag;
+         //p.f -= p.vhat*(p.dporositydt/p.porosity + p.dddt/p.dens);
+         //p.ff -= p.vhat*(p.dporositydt/p.porosity + p.dddt/p.dens);
       }
 
       inline void finalisePorosityAndDrag2(Cparticle &p, CglobalVars &g) {
@@ -1188,8 +1185,11 @@ namespace Nsph {
          for (int i=0;i<n;i++) {
             Cparticle *pn = neighbrs[i];
             if ((pn->iam != sph)&&(pn->iam != sphBoundary)) continue;
-            double r = len(p.r-pn->r);
- 	    pn->porosity += calcPorosityIncr(W(r*(2.0/LIQ_DEM_COUPLING_RADIUS),LIQ_DEM_COUPLING_RADIUS/2.0));
+            const vect dx = pn->r-p.r;
+            const double r = len(dx);
+            const double q = r*(2.0/LIQ_DEM_COUPLING_RADIUS);
+ 	    pn->porosity += calcPorosityIncr(W(q,LIQ_DEM_COUPLING_RADIUS/2.0));
+ 	    pn->dporositydt -= DEM_VOL*dot((pn->vhat-p.vhat),dx)*F(q,LIQ_DEM_COUPLING_RADIUS/2.0);
          }
 #ifndef LIQ_DEM_ONE_WAY_COUPLE
          calcFPIOnFluid(p,neighbrs,g);
@@ -1263,6 +1263,17 @@ namespace Nsph {
 #ifdef HERTZ_KUWABARA
          return (DEM_K*pow(overlap,1.5) + DEM_GAMMA*sqrt(overlap)*overlap_dot)*normal;
 #endif
+#ifdef LUBRICATION
+         if (overlap > 0) {
+            return (DEM_K*overlap + LUB_GAMMA*overlap_dot)*normal;
+         } else if (overlap > -DEM_REDUCED_RADIUS) {
+            return -6*PI*VISCOSITY*DENS*pow(DEM_REDUCED_RADIUS,2)*
+                           (1.0/(-overlap+ROUGHNESS_EPSILON*DEM_REDUCED_RADIUS) - 1.0/((1.0+ROUGHNESS_EPSILON)*DEM_REDUCED_RADIUS))*
+                                 overlap_dot*normal;
+         } else {
+            return 0.0;
+         }
+#endif
 #ifdef LINEAR
          return (DEM_K*overlap + DEM_GAMMA*overlap_dot)*normal;
 #endif
@@ -1294,7 +1305,7 @@ namespace Nsph {
          return mu*(fNorm + k*overlap);
       }
 
-      inline vect demWallContact(const vect dx, const vect dv, const vect normP, const vect normT) {
+      inline vect demWallContact(Cparticle &p, const vect dx, const vect dv, const vect normP, const vect normT) {
          double rperp = dot(normP,dx);
          vect rtang = dx - rperp*normT;
          double ptang[2];
@@ -1310,13 +1321,19 @@ namespace Nsph {
          pdist[0] = ptang[0]*rDelP;
          pdist[1] = ptang[1]*rDelP;
          const double overlap = 1.0*DEM_RADIUS-rperp;
-         if ((pdist[0] <= 1.0)&&(pdist[1] <= 1.0)&&(overlap>0)) { 
+
+         if ((pdist[0] <= 1.0)&&(pdist[1] <= 1.0)) {
+#ifdef LUBRICATION
+            if (((p.shepSum>0.5)&&(overlap>-DEM_REDUCED_RADIUS))||(overlap>0)) {
+#else
+            if (overlap>0) {
+#endif
             //const double pesky = 0.25*(1+cos(PI*pdist[0]))*(1+cos(PI*pdist[1]));
-            const double overlap_dot = -dot(dv,normP);
-            return demNormal(overlap,overlap_dot,normP);
-         } else {
-            return 0,0,0;
+               const double overlap_dot = -dot(dv,normP);
+               return demNormal(overlap,overlap_dot,normP);
+            }
          }
+         return 0,0,0;
       }
 
       inline vect calcParticleDrag(Cparticle &p, const vect &ff, const vect &fpfvfb, const vect &fdrag, const vect &fvel, const double &fdens, const vect &fvort) {
@@ -1403,9 +1420,9 @@ namespace Nsph {
 #else
             const vect tang = 0.0;
 #endif
-            vect fWall = demWallContact(dx,dv,nearestBoundary->norm1,tang);
+            vect fWall = demWallContact(p,dx,dv,nearestBoundary->norm1,tang);
             if (any(nearestBoundary->norm2 != 0)) {
-               fWall += demWallContact(dx,dv,nearestBoundary->norm2,tang);
+               fWall += demWallContact(p,dx,dv,nearestBoundary->norm2,tang);
             }
 
             double pmass = p.mass;
@@ -1415,7 +1432,7 @@ namespace Nsph {
             }
 #endif
             fWall /= pmass;
-            p.fb += fWall;       
+            p.fp += fWall;       
             p.f += fWall;
          }
       }
@@ -1430,7 +1447,11 @@ namespace Nsph {
             const vect dv = p.vhat - pn->vhat;
             const vect normal = dx/r;
             const double overlap = 2.0*DEM_RADIUS-r;
+#ifdef LUBRICATION
+            if (((p.shepSum>0.5)&&(overlap>-DEM_REDUCED_RADIUS))||(overlap>0)) {
+#else
             if (overlap>0) {
+#endif
                const double overlap_dot = -dot(dv,normal);
                double pmass = p.mass;
 #ifdef LIQ_DEM_ADDED_MASS
@@ -1453,7 +1474,8 @@ namespace Nsph {
          double fdens = 0;
          //vect fp = 0.0;
          vect ff = 0.0;
-         vect fpfvfb = 0.0;
+         vect fpfb = 0.0;
+         vect fv = 0.0;
          //vect fv = 0.0;
          p.fvel = 0.0;
          p.fdrag = 0.0;
@@ -1474,7 +1496,8 @@ namespace Nsph {
             const double Wab = W(q,pn->h);
             const double dvWab = dvol*Wab;
             //fp += dvWab*(pn->fp+pn->fb);
-            fpfvfb += dvWab*(pn->fp+pn->fv+pn->fb);
+            fpfb += dvWab*(pn->fp+pn->fb);
+            fv += dvWab*(pn->fv);
             ff += dvWab*(pn->f);
             //fv += dvWab*pn->fv;
             fdrag += dvWab*pn->fdrag;
@@ -1491,12 +1514,16 @@ namespace Nsph {
             //fp *= rsum;
             //fv *= rsum;
             ff *= rsum;
-            fpfvfb *= rsum;
+            fpfb *= rsum;
+            fv *= rsum;
             fdrag *= rsum;
             p.fvel *= rsum;
             fdens *= rsum;
             p.porosity *= rsum;
-            p.fdrag = calcParticleDrag(p,ff,fpfvfb,fdrag,p.fvel,fdens,fvort);
+            p.fb = fpfb;
+            p.fv = fv;
+            p.fdrag = calcParticleDrag(p,ff,fv+fpfb,fdrag,p.fvel,fdens,fvort);
+            //cout <<"time = "<<g.time<<"fpfvfb = "<<fpfvfb<<" drag = "<<p.fdrag<<" pvel = "<<p.vhat[2]<<" fvel = "<<p.fvel[2]<<endl;
             p.f += p.fdrag;
          }
       }

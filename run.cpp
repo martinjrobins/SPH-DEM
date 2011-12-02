@@ -46,6 +46,7 @@ int main(int argc, char *argv[]) {
    int outstep = atoi(argv[2]);
 
    if (TIME_OVERIDE) {
+      if (globals.mpiRank==0) cout << "time was set to time = "<<globals.time<<endl;
       globals.time = START_TIME;
       if (globals.mpiRank==0) cout << "Overiding time, time = "<<globals.time<<endl;
    }
@@ -59,6 +60,7 @@ int main(int argc, char *argv[]) {
    io_data.setFilename(outFilename,&globals);
 
 
+   if (globals.mpiRank==0) cout << "1time was set to time = "<<globals.time<<endl;
 
    if (globals.mpiRank==0) cout << "Creating data structure..." <<endl;
 
@@ -80,6 +82,7 @@ int main(int argc, char *argv[]) {
    CcustomSim customSim(data,globals.time);
    CcustomOutput customOutput(data);
 
+   if (globals.mpiRank==0) cout << "2time was set to time = "<<globals.time<<endl;
 
    globals.maxdt = MAXTIME/OUTSTEP;
 
@@ -95,6 +98,7 @@ int main(int argc, char *argv[]) {
    wtStartOutStep = wtStartSim;
    wtStartSphStep = wtStartSim;
    globals.startOutStep();
+
    while ((globals.time <= MAXTIME) && (outstep <= OUTSTEP)) {
 
       globals.sphStep++;

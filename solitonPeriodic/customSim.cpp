@@ -26,13 +26,22 @@ void addParticle(Cparticle &p,CdataLL &data,double y,int tag) {
    data.insertNewParticle(pnew);
 }
 
+inline void myDriftR(Cparticle &p,CglobalVars &g) {
+   const double dt = g.dt/2;
+   p.r += dt*p.vhat;
+}
+inline void myReverseDriftR(Cparticle &p,CglobalVars &g) {
+   const double dt = g.dt/2;
+   p.r -= dt*p.vhat;
+}
+
 inline void addPeriodicBoundaries(Cparticle &p,CglobalVars &g,CdataLL &data) {
    if ((p.tag==RANDOMTAG)||(p.tag==-111)) return;
    if (g.mpiRank<=ENDPERIODICCPU) {
-      const double maxY = ((NY/2.0)+PY)*PSEP+RMIN[1];
+      const double maxY = ((NY/2.0)+PY+1)*PSEP+RMIN[1];
       const double minY = ((NY/2.0)-PY)*PSEP+RMIN[1];
       const double width = maxY-minY;
-      const int expandX = NX-L4/PSEP;
+      const double expandX = NXP*PSEP;
       //cout <<"p.r = "<<p.r<<endl;
       if (p.tag==ENDTAG) {
          if (p.r[0]>expandX) return;
@@ -51,6 +60,7 @@ inline void addPeriodicBoundaries(Cparticle &p,CglobalVars &g,CdataLL &data) {
       if (p.r[0] > expandX-2*H) {
          for (int i=0;i<RY;i++) {
             if (p.r[0] > expandX) {
+               p.tag = ENDTAG;
                addParticle(p,data,p.r[1]-(i+1)*width,ENDTAG);
                addParticle(p,data,p.r[1]+(i+1)*width,ENDTAG);
             } else {
@@ -59,10 +69,10 @@ inline void addPeriodicBoundaries(Cparticle &p,CglobalVars &g,CdataLL &data) {
             }
          }
       } else {
-         if (p.r[1]>maxY-3*H) {
+         if (p.r[1]>maxY-2.1*H) {
             addParticle(p,data,p.r[1]-width,RANDOMTAG);
          } 
-         if (p.r[1]<minY+3*H) {
+         if (p.r[1]<minY+2.1*H) {
             addParticle(p,data,p.r[1]+width,RANDOMTAG);
          }
       }
@@ -75,10 +85,22 @@ inline void removePeriodicBoundaries(Cparticle &p,CglobalVars &g,CdataLL &data) 
    }
 }
 
+
+/*
+inline void createOneWayBoundary(Cparticle &p,CglobalVars &g) {
+   if (g.mpiRank==ENDPERIODICCPU) {
+      if (p.r[0] > NX*PSEP) {
+
+   } else if (g.mpiRank==ENDPERIODICCPU+1) {
+   }
+}
+*/
+
 void CcustomSim::beforeMiddle(double newTime) {
    data->traverse<addGravity,Nsph::ifSph>();
-   if (RY>0) {
+   if ((RY>0)&&(data->globals.mpiRank<=ENDPERIODICCPU)) {
       data->traverse<CdataLL,addPeriodicBoundaries,Nsph::ifSphOrSphBoundaryOrBoundary>(*data);
+      //data->traverse<CdataLL,createOneWayBoundary,Nsph::ifGhost>();
    }
    if (newTime > WALLUP) {
       double dt = newTime-oldTime;
@@ -88,9 +110,12 @@ void CcustomSim::beforeMiddle(double newTime) {
 }
 void CcustomSim::beforeEnd(double newTime) {
    data->traverse<addGravity,Nsph::ifSph>();
-   if (RY>0) {
+   if ((RY>0)&&(data->globals.mpiRank<=ENDPERIODICCPU)) {
       data->traverse<CdataLL,removePeriodicBoundaries,Nsph::ifSphOrSphBoundaryOrBoundary>(*data);
+      data->traverse<myDriftR,Nsph::ifSphOrSphBoundary>();
       data->traverse<CdataLL,addPeriodicBoundaries,Nsph::ifSphOrSphBoundaryOrBoundary>(*data);
+      data->traverse<myReverseDriftR,Nsph::ifSphOrSphBoundary>();
+      //data->traverse<CdataLL,createOneWayBoundary,Nsph::ifGhost>();
    }
    if (newTime > WALLUP) {
       double dt = newTime-oldTime;
@@ -101,7 +126,7 @@ void CcustomSim::beforeEnd(double newTime) {
 
 void CcustomSim::afterEnd(double newTime) {
    data->traverse<addGravity,Nsph::ifSph>();
-   if (RY>0) {
+   if ((RY>0)&&(data->globals.mpiRank<=ENDPERIODICCPU)) {
       data->traverse<CdataLL,removePeriodicBoundaries,Nsph::ifSphOrSphBoundaryOrBoundary>(*data);
       data->deleteParticles();
    }

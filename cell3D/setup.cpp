@@ -142,21 +142,40 @@ int main(int argc, char *argv[]) {
    cout << "term vel (2d) is "<<(1.0/3.0)*(DEM_DENS-DENS)*9.81*pow(DEM_RADIUS,2)/(VISCOSITY*DENS)<<endl;
    //cout << "term vel is "<<(1.0/6.0)*(DEM_DENS-DENS)*9.81*pow(DEM_RADIUS,1)/(VISCOSITY*DENS)<<endl;
 
+   cout << "gamma must be less than" <<2.0*sqrt(DEM_K*DEM_MIN_REDUCED_MASS)<<endl;
+#ifdef LUBRICATION
+   cout << "k must be greater than" <<pow(0.5*LUB_GAMMA,2)/DEM_MIN_REDUCED_MASS<<endl;
+#else
+   cout << "k must be greater than" <<pow(0.5*DEM_GAMMA,2)/DEM_MIN_REDUCED_MASS<<endl;
+#endif
    cout << "Konmr ="<<Konmr<<endl;
    cout << "gammaOnmr = "<<gammaOnmr<<endl;
+   cout << "K = "<<DEM_K<<endl;
+#ifdef LUBRICATION
+   cout << "GAMMA  = "<<LUB_GAMMA<<endl;
+#else
+   cout << "GAMMA  = "<<DEM_GAMMA<<endl;
+#endif
+   
 
    cout <<"THETS ="<<THETS<<endl;
    cout <<"DEM_TIMESTEP="<<DEM_TIMESTEP<<endl;
    cout <<"CR = "<<CR<<endl;
 
+ 
    double tsc = Nsph::courantCondition(H,2*SPSOUND);
    double tsv = Nsph::viscDiffusionCondition(H,VISCOSITY);
-#ifdef LIQ_DEM
    double tdem = Nsph::demCondition();
+#ifdef LUBRICATION
+   cout <<"coeff of restitution = "<<exp(-tdem*0.5*LUB_GAMMA/DEM_MIN_REDUCED_MASS)<<endl;
 #else
-   double tdem = MAXTIME;
+   cout <<"coeff of restitution = "<<exp(-tdem*0.5*DEM_GAMMA/DEM_MIN_REDUCED_MASS)<<endl;
 #endif
-   cout <<"simulation will take "<<int((MAXTIME/tsc)+1)<<" steps according to Courant condition, "<<int((MAXTIME/tsv)+1)<<" steps according to visc diffusion condition"<<int((MAXTIME/tdem)+1)<<" steps according to the DEM condition"<<endl;
+   double liqtdem = Nsph::liqDemCondition();
+   cout <<"dem ts = "<<tdem<<endl;
+   cout <<"liq dem ts = "<<liqtdem<<endl;
+   cout <<"simulation will take "<<int((MAXTIME/tsc)+1)<<" steps according to Courant condition, "<<int((MAXTIME/tsv)+1)<<" steps according to visc diffusion condition"<<int((MAXTIME/tdem)+1)<<" steps according to the DEM condition"<<int((MAXTIME/liqtdem)+1)<<" steps according to the LIQ DEM condition"<<endl;
+
    cout <<"reduced mass = "<<DEM_MIN_REDUCED_MASS<<endl;
 cout <<" tdem = "<< (1.0/50.0)*PI*sqrt(DEM_MIN_REDUCED_MASS)/sqrt(DEM_K-pow(0.5*DEM_GAMMA,2)/DEM_MIN_REDUCED_MASS) << endl;
    vect normal = 0.0;
