@@ -1,8 +1,10 @@
-#define LIQ_DEM_ONE_WAY_COUPLE
+#define MANY_PARTICLES
+#define GRID_OF_DEM
+#define GRID_OF_DEM_PERT
 #define IN_WATER
-#define LIQ_DEM_SIMPLE_DRAG
-const double POROSITY = 1.0;
+const double POROSITY = 0.8;
 const int NX = 10;
-const double VISCOSITY = 7.73913043478e-06;
-const double DENS = 1150.0;
-const double REYNOLDS_NUMBER = 0.0108291337093;
+const double VISCOSITY = 1.5710786384e-05;
+const double DENS = 1.1839;
+const double REYNOLDS_NUMBER = 1.65840481642;
+const double HMULT  = 2.0;

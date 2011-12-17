@@ -151,11 +151,13 @@ int main(int argc, char *argv[]) {
 #ifdef GRID_OF_DEM
    cout <<"adding block with min = "<<min[0]<<" "<<min[1]<<" "<<min[2]<<" and max = "<<max[0]<<" "<<max[1]<<" "<<max[2]<<endl; 
    Nmisc::addGridDEMparticles(ps,min,max,POROSITY);
+#ifdef GRID_OF_DEM_PERT
    for (vector<Cparticle>::iterator i=ps.begin();i!=ps.end();i++) {
       if (i->iam==dem) {
-         i->r[2] -= DEM_RADIUS*0.25*(1-cos(i->r[0]*2.0*PI))*(1-cos(i->r[1]*2.0*PI));
+         i->r[2] -= DEM_RADIUS*0.25*(1-cos(i->r[0]*2.0*PI/L))*(1-cos(i->r[1]*2.0*PI/L));
       }
    }
+#endif
 #else
    Nmisc::addRandomDEMparticles(data,min,max,POROSITY);
 #endif

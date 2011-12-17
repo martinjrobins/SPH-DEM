@@ -19,10 +19,10 @@ const double REFD = DENS;
 
 const double RMIN[NDIM] = {0,0,0};
 const double L = 0.004;
-const double RMAX[NDIM] = {L,L,L*2.0};
-const double WMAX = 1.5*L;
+const double RMAX[NDIM] = {L,L,L*HMULT};
+const double WMAX = L*HMULT-0.5*L;
 const double BMIN[NDIM] = {0,0,0};
-const double BMAX[NDIM] = {L,L,L*2.0};
+const double BMAX[NDIM] = {L,L,L*HMULT};
 
 #define TIME_OVERIDE 0
 #define START_TIME 0
@@ -86,7 +86,7 @@ const double VREF = 0.5*VISCOSITY*REYNOLDS_NUMBER/(POROSITY*DEM_RADIUS);
 //const double VMAX = sqrt(2*9.81*(1.0+0.5*(1-POROSITY)*(DEM_DENS-DENS)/DENS)*(RMAX[2]-RMIN[2]));
 const double VMAX = sqrt(2*9.81*(RMAX[2]-RMIN[2]));
 
-const double MAXTIME = 1.5*L/VREF+0.1;
+const double MAXTIME = 1.5*L*HMULT/VREF+0.1;
 const double TIME_DROP_PARTICLE = (1.0/3.0)*MAXTIME;
 const int DAMPTIME = TIME_DROP_PARTICLE/2.0;
 #ifdef MANY_PARTICLES
@@ -112,8 +112,8 @@ const double SPHBOUNDARYDENS = REFD*pow(9.81*REFD*(RMAX[2]-RMIN[2])/PRB + 1,1.0/
 const double MY_VAR_RES_DV = VMAX/8.0;
 
 const int NY = NX;
-const int NZ = 1.5*NX;
 const double PSEP = (BMAX[0]-BMIN[0])/(NX);
+const int NZ = WMAX/PSEP;
 const int MAX_NUM_PARTICLES_PER_CPU = 1.1*(NX*NY*NZ+(1-POROSITY)*0.5*(RMAX[0]-RMIN[0])*(RMAX[1]-RMIN[1])*(RMAX[2]-RMIN[2])/DEM_VOL);
 const int MAX_NUM_DEM_PARTICLES = 1.1*(1-POROSITY)*0.5*(RMAX[0]-RMIN[0])*(RMAX[1]-RMIN[1])*(RMAX[2]-RMIN[2])/DEM_VOL+1;
 const double BFAC = 1.00;

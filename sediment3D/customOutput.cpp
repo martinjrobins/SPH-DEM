@@ -12,7 +12,7 @@ inline void printVel(Cparticle &p,CglobalVars &g) {
 }
 void CcustomOutput::calcOutput(int outstep,CcustomSim *custSim,Cio_data_vtk *io) {
    data->traverse<printVel,Nsph::ifDem>();
-   data->neighboursGroup<calcVortLeastSquares,ifSph>();
+   //data->neighboursGroup<calcVortLeastSquares,ifSph>();
    //data->neighboursGroup<calcVortLeastSquares,ifSph>();
 }
 
