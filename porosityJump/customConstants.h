@@ -77,7 +77,7 @@ const double TIME_DROP_PARTICLE = 0.0;
 const int DAMPTIME = 0;
 const int OUTSTEP = 300;
 const int RESTART_EVERY_N_STEPS = 250;
-const int REINIT_DENS_EVERY_N_STEPS = 100000000;
+const int REINIT_DENS_EVERY_N_STEPS = 1000000;
 
 
 //const double Ar = 8*pow(DEM_RADIUS,3)*(DEM_DENS-DENS)*9.81/VISCOSITY

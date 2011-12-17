@@ -998,7 +998,7 @@ void CdataLL::addIfNeighbr(Cparticle &_p,vector<Cparticle *> &_neighbrs,vector<C
 
 void CdataLL::addIfInRadius(Cparticle &_p,vector<Cparticle *> &_neighbrs,vector<Cparticle *> &_toAdd,const double radius2) {
    for (int i=0;i<_toAdd.size();i++) {
-      if (len2(_p.r-_toAdd[i]->r)<radius2) {
+      if ((len2(_p.r-_toAdd[i]->r)<radius2)&&(&_p!=_toAdd[i])) {
          _neighbrs.push_back(_toAdd[i]);
       }
    }
@@ -1006,7 +1006,8 @@ void CdataLL::addIfInRadius(Cparticle &_p,vector<Cparticle *> &_neighbrs,vector<
 
 void CdataLL::addAll(Cparticle &_p,vector<Cparticle *> &_neighbrs,vector<Cparticle *> &_toAdd) {
    for (int i=0;i<_toAdd.size();i++) {
-      _neighbrs.push_back(_toAdd[i]);
+      if (&_p!=_toAdd[i]) 
+         _neighbrs.push_back(_toAdd[i]);
    }
 }
 

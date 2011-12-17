@@ -183,6 +183,17 @@ class CsphIncompress {
       }
       static void writeDens(Cparticle &p,double dens) {
          p.dens = dens;
+         if (p.iam==sph) {
+         for (int i=0;i<NDIM;i++) {
+            if (PERIODIC[i]) {
+               if (p.r[i]<RMIN[i]) {
+                  p.dens += DENS_DROP[i];
+               } else if (p.r[i]>RMAX[i]) {
+                  p.dens -= DENS_DROP[i];
+               }
+            }
+         }
+         }
       }
       static double readH(Cparticle &p) {
          return p.h;
