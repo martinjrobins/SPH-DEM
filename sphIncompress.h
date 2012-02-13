@@ -47,6 +47,18 @@ class CsphIncompress {
       }
 #endif
 
+#ifdef VAR_H_CORRECTION2
+      static vect readGradH(Cparticle &p) {
+         return p.gradH;
+      }
+      static void writeGradH(Cparticle &p,vect gradH) {
+         p.gradH = gradH;
+      }
+      static void sumGradH(Cparticle &p,vect gradH) {
+         p.gradH += gradH;
+      }
+#endif
+
 #ifdef LIQ_DEM
       static double readPorosity(Cparticle &p) {
          return p.porosity;
@@ -667,17 +679,7 @@ class CsphIncompress {
 #endif
          //p.h = HFAC*pow(p.mass/p.dens,1.0/NDIM);
 #ifndef CONST_H
-#ifdef SLK
          p.h = HFAC*pow(p.mass/p.dens,1.0/NDIM);
-         //p.h *= pow(pin*p.mass/(p.dens*massin),1.0/NDIM);
-         //p.h *= pow(pin/p.dens,1.0/NDIM);
-#else
-         p.h *= pow(pin/p.dens,1.0/NDIM);
-#endif
-#else
-#ifdef LIQ_DEM
-         p.h = H*pow(1.0/p.porosity,1.0/NDIM);
-#endif
 #endif
          //p.u += dt*p.dudt;
          //p.h += dt*p.dhdt;
@@ -805,6 +807,8 @@ class CsphIncompress {
          const double dddtInc = pb.mass*vdr;
 #endif
 
+         
+
          pa.dddt += dddtInc;
          //cout <<"pa.dddt = "<<dddtInc<<"pb.mass = "<<pb.mass<<" vdr "<<vdr<<" q = "<<q<<"hav = "<<hav<<"Fa = "<<Fa<<" pa.r = "<<pa.r<<" pb.r "<<pb.r<<endl;
 
@@ -829,9 +833,10 @@ class CsphIncompress {
 //void CsphIncompress:init_particles(Cparticle &p) {
 //}
    
-#ifdef VAR_H_CORRECTION
+#ifdef LIQ_DEM
       static void correctDddt(Cparticle &p,CglobalVars &g) {
-         p.dddt /= p.omega;
+         p.dddt -= p.dens*dot(p.vhat,p.gradPorosity);
+         //p.dddt *= 1.0/p.porosity;
       }
 #endif
 
@@ -843,7 +848,7 @@ class CsphIncompress {
 #ifdef LIQ_DEM_DENS_NORMAL
          p.press = PRB*(pow(p.dens/REFD,7) - 1.0);
 #else
-         p.press = PRB*p.porosity*(pow(p.dens/(REFD*p.porosity),GAMMA) - 1.0);
+         p.press = PRB*(pow(p.dens/(REFD*p.porosity),GAMMA) - 1.0);
 #endif
          //p.press = PRB*(pow(p.dens/REFD,7) - 1.0);
 #else

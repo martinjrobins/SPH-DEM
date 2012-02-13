@@ -307,7 +307,7 @@ private:
 #ifdef LIQ_DEM
       inline vectInt dem_getCellI(vect r) {
          //return static_cast<vectInt>((r-rmin)/(2*DEM_SEARCH_RADIUS)+3*H/DEM_SEARCH_RADIUS-1);
-         return static_cast<vectInt>((r-cell_min)/(2*DEM_SEARCH_RADIUS)+3*H/DEM_SEARCH_RADIUS-1);
+         return static_cast<vectInt>((r-cell_min)/(2*DEM_SEARCH_RADIUS)+2*LIQ_DEM_COUPLING_RADIUS/DEM_SEARCH_RADIUS-1);
       }
 #endif
 

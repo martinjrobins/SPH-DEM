@@ -17,7 +17,7 @@ void CsphIncompress::start() {
    data->globals.time += data->globals.dt/2;
 
    //if ((data->globals.sphStep < DAMP_STEPS)||(data->globals.sphStep%REINIT_DENS_EVERY_N_STEPS==0)) {
-   if ((data->globals.sphStep%REINIT_DENS_EVERY_N_STEPS==0)) {
+   if ((data->globals.sphStep%REINIT_DENS_EVERY_N_STEPS==0)||(data->globals.sphStep == REINIT_DENS_AT_N_STEPS)) {
       data->reset();
 #ifdef MY_VAR_RES
       data->neighboursGroup<calcGradVLeastSquares,ifSphOrSphBoundary>();
@@ -61,29 +61,45 @@ void CsphIncompress::middle() {
    timeval t1,t2;
    gettimeofday(&t1,NULL);
 #ifdef LIQ_DEM
+   /*
    data->traverse<initPorosityAndDrag,ifSphOrSphBoundaryOrGhost>();
    data->neighboursGroupCoupling<calcPorosity,ifDem>();
    data->reverseSyncParticlesBetweenProcs<double,readPorosity,sumPorosity>();
    data->reverseSyncParticlesBetweenProcs<double,read_dPorositydt,sum_dPorositydt>();
    data->neighboursGroupAtRadius<finalisePorosity,ifSphOrSphBoundary>(LIQ_DEM_COUPLING_RADIUS);
+   //data->neighboursGroup<finalisePorosity,ifSphOrSphBoundary>();
    data->syncParticlesBetweenProcs<double,readPorosity,writePorosity>();
    data->traverse<setPorosityForBoundary,ifBoundary>();
-   /*
-   data->neighboursGroupCoupling<calcPorosity2,ifSphOrSphBoundary>();
-   data->traverse<setPorosityForBoundary,ifBoundary>();
-   data->syncParticlesBetweenProcs<double,readPorosity,writePorosity>();
    */
 
-   data->traverse<calcHFromPorosity,ifSphOrSphBoundaryOrGhost>();
-   data->syncParticlesBetweenProcs<double,readH,writeH>();
-   data->neighboursGroup<calcDensity,ifSphOrSphBoundary>();
-   data->syncParticlesBetweenProcs<double,readDens,writeDens>();
-#ifndef LIQ_DEM_ONE_WAY_COUPLE
-   data->neighboursGroupCoupling<calcDrag,ifDem>();
-   data->reverseSyncParticlesBetweenProcs<vect,readFdrag,sumFdrag>();
-   data->traverse<finaliseDrag,ifSphOrSphBoundary>();
-   //data->neighboursGroupCoupling<calcDrag2,ifSphOrSphBoundary>();
+#ifdef LIQ_DEM_SEPARATE_DRAGS
+   data->neighboursGroupCoupling<calcPorosityAndDrag3,ifSphOrSphBoundary>();
+#else
+   data->neighboursGroupCoupling<calcPorosityAndDrag2,ifSphOrSphBoundary>();
 #endif
+   data->traverse<finalisePorosity2,ifSphOrSphBoundary>();
+   //data->neighboursGroupAtRadius<finalisePorosity,ifSphOrSphBoundary>(LIQ_DEM_COUPLING_RADIUS);
+   data->traverse<setPorosityForBoundary,ifBoundary>();
+   //data->syncParticlesBetweenProcs<double,readPorosity,writePorosity>();
+
+#ifdef VAR_H_CORRECTION2
+   /*
+   data->traverse<initGradH,ifSphOrSphBoundaryOrDemOrGhost>();
+   data->neighboursGroupCoupling<calcGradPorosity,ifDem>();
+   data->reverseSyncParticlesBetweenProcs<vect,readGradH,sumGradH>();
+   */
+   data->neighboursGroupCoupling<calcGradPorosity2,ifSphOrSphBoundary>();
+#endif
+
+
+#ifdef CONST_H
+   //data->traverse<calcHFromPorosity,ifSphOrSphBoundaryOrGhost>();
+   //data->reset();
+#endif
+   //data->syncParticlesBetweenProcs<double,readH,writeH>();
+   //data->neighboursGroup<calcDensity,ifSphOrSphBoundary>();
+   //data->traverse<calcHFromPorosity,ifSphOrSphBoundaryOrGhost>();
+   //data->syncParticlesBetweenProcs<double,readDens,writeDens>();
    /*
    data->neighboursGroupCoupling<calcPorosityAndDrag2,ifSphOrSphBoundary>();
    data->syncParticlesBetweenProcs<double,readPorosity,writePorosity>();
@@ -95,6 +111,14 @@ void CsphIncompress::middle() {
 #ifdef VAR_H_CORRECTION 
    data->neighboursGroup<calcOmega,ifSphOrSphBoundary>();
    data->syncParticlesBetweenProcs<double,readOmega,writeOmega>();
+#endif
+#ifdef VAR_H_CORRECTION2
+#ifdef LIQ_DEM
+   data->traverse<finaliseGradH,ifSphOrSphBoundary>();
+#else
+   data->neighboursGroup<calcGradH,ifSphOrSphBoundary>();
+#endif
+   data->syncParticlesBetweenProcs<vect,readGradH,writeGradH>();
 #endif
 
    data->traverse<calcPressSpsoundPdr2,ifSphOrSphBoundaryOrGhost>();	
@@ -173,6 +197,17 @@ void CsphIncompress::end() {
 #ifdef VAR_H_CORRECTION 
    data->neighboursGroup<calcOmega,ifSphOrSphBoundary>();
 #endif
+#ifdef VAR_H_CORRECTION2
+#ifdef LIQ_DEM
+   data->neighboursGroupCoupling<calcGradPorosity2,ifSphOrSphBoundary>();
+   data->traverse<finaliseGradH,ifSphOrSphBoundary>();
+#else
+   data->neighboursGroup<calcGradH,ifSphOrSphBoundary>();
+#endif
+   data->syncParticlesBetweenProcs<vect,readGradH,writeGradH>();
+#endif
+
+
    timeval t1,t2;
    gettimeofday(&t1,NULL);
 #ifdef SLK
@@ -181,6 +216,7 @@ void CsphIncompress::end() {
 #endif
    data->neighbours<calcDddtDudt,ifSphOrSphBoundary>();
 #ifdef LIQ_DEM
+   //data->traverse<correctDddt,ifSphOrSphBoundary>();
    data->syncParticlesBetweenProcs<vect,readF,writeF>();
    data->syncParticlesBetweenProcs<vect,readFb,writeFb>();
    data->syncParticlesBetweenProcs<vect,readFp,writeFp>();

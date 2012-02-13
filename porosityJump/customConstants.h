@@ -32,19 +32,20 @@ const double REFD = 1000.0;
 #define WENDLAND
 #define VISC_MORRIS
 //#define VISC_ARTIFICIAL
-//const double ALPHA_ARTIFICIAL = 1.0;
+//const double ALPHA_ARTIFICIAL = 0.1;
 //#define HANN
 //#define VISC_MONAGHAN
 //#define VISC_CLEARY
-#define VORT_LEASTSQUARES
+//#define VORT_LEASTSQUARES
 //#define REFERENCE_FRAME
 //#define CORRECTED_GRADIENT
 #define VAR_H_CORRECTION
-#define CONST_H
+//#define CONST_H
 
 //#define SETTLE
 //#define SPHBOUNDARY
 #define LIQ_DEM
+#define LIQ_DEM_SEPARATE_DRAGS
 #define _2D_DEM
 //#define LIQ_DEM_SIMPLE_DRAG
 //#define LIQ_DEM_ADDED_MASS
@@ -77,7 +78,9 @@ const double TIME_DROP_PARTICLE = 0.0;
 const int DAMPTIME = 0;
 const int OUTSTEP = 300;
 const int RESTART_EVERY_N_STEPS = 250;
-const int REINIT_DENS_EVERY_N_STEPS = 1000000;
+const int REINIT_DENS_EVERY_N_STEPS = 300000000;
+const int REINIT_DENS_AT_N_STEPS = 500;
+//#define REINIT_DENS_MLS
 
 
 //const double Ar = 8*pow(DEM_RADIUS,3)*(DEM_DENS-DENS)*9.81/VISCOSITY

@@ -107,7 +107,6 @@ void myBoundaryCircle(vector<Cparticle> &ps,const vect &origin,const double radi
             p.norm1 = 0,0,1;
             p.norm2 = 0,0,0;
          }
-         p.dist = 0;
          ps.push_back(p);
       }
    }
@@ -178,6 +177,7 @@ int main(int argc, char *argv[]) {
 
    cout <<"reduced mass = "<<DEM_MIN_REDUCED_MASS<<endl;
 cout <<" tdem = "<< (1.0/50.0)*PI*sqrt(DEM_MIN_REDUCED_MASS)/sqrt(DEM_K-pow(0.5*DEM_GAMMA,2)/DEM_MIN_REDUCED_MASS) << endl;
+   cout <<"particle reynolds number = "<<2.0*DEM_RADIUS*INFLOW_VEL/VISCOSITY<<endl;
    vect normal = 0.0;
    normal[2] = 1.0;
    Nmisc::boundaryCircle(ps,CYLINDER_ORIGIN,INLET_RADIUS,CYLINDER_RADIUS,normal);
@@ -228,7 +228,8 @@ cout <<" tdem = "<< (1.0/50.0)*PI*sqrt(DEM_MIN_REDUCED_MASS)/sqrt(DEM_K-pow(0.5*
    const double totalDEMVol = NDEM*(4.0/3.0)*PI*pow(DEM_RADIUS,3);
    //const double newLiqDens = DENS;
    const double liqVol = PI*pow(CYLINDER_RADIUS,2)*CYLINDER_HEIGHT*0.90;
-   const double newLiqDens = DENS*(liqVol-totalDEMVol)/(liqVol);
+   //const double newLiqDens = DENS*(liqVol-totalDEMVol)/(liqVol);
+   const double newLiqDens = DENS;
    cout << "porosity = "<<1.0-totalDEMVol/(liqVol)<<endl;
    cout << "after adding dem particles, new liquid density is "<<newLiqDens<<endl; 
 
@@ -255,9 +256,9 @@ cout <<" tdem = "<< (1.0/50.0)*PI*sqrt(DEM_MIN_REDUCED_MASS)/sqrt(DEM_K-pow(0.5*
       vect tmp = CYLINDER_ORIGIN;
       tmp[2] -= INLET_HEIGHT-k*PSEP;
       if (k<4) {
-         myBoundaryCircle(ps,tmp,0,int((INLET_RADIUS-1.5*PSEP)/PSEP)*PSEP,sphBoundary);
+         myBoundaryCircle(ps,tmp,0,int((INLET_RADIUS-1.4*PSEP)/PSEP)*PSEP,sphBoundary);
       } else {
-         myBoundaryCircle(ps,tmp,0,int((INLET_RADIUS-1.5*PSEP)/PSEP)*PSEP,sph);
+         myBoundaryCircle(ps,tmp,0,int((INLET_RADIUS-1.4*PSEP)/PSEP)*PSEP,sph);
       }
    }
 

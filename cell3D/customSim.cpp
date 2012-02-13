@@ -116,7 +116,7 @@ void CcustomSim::afterEnd(double newTime) {
       if (start) {
          vect newOrigin = CYLINDER_ORIGIN;
          newOrigin[2] -= INLET_HEIGHT;
-         sphBoundaryCircle(data,newOrigin,0,int((INLET_RADIUS-0.9*PSEP)/PSEP)*PSEP);
+         sphBoundaryCircle(data,newOrigin,0,int((INLET_RADIUS-1.4*PSEP)/PSEP)*PSEP);
       }
       start = true;
       data->traverse<setupInflow,Nsph::ifSphBoundary>();
@@ -136,7 +136,7 @@ void CcustomSim::beforeMiddle(double newTime) {
       if (start) {
          vect newOrigin = CYLINDER_ORIGIN;
          newOrigin[2] -= INLET_HEIGHT;
-         sphBoundaryCircle(data,newOrigin,0,int((INLET_RADIUS-0.9*PSEP)/PSEP)*PSEP);
+         sphBoundaryCircle(data,newOrigin,0,int((INLET_RADIUS-1.4*PSEP)/PSEP)*PSEP);
       }
       start = true;
       data->traverse<setupInflow,Nsph::ifSphBoundary>();
@@ -155,7 +155,7 @@ void CcustomSim::beforeEnd(double newTime) {
       if (start) {
          vect newOrigin = CYLINDER_ORIGIN;
          newOrigin[2] -= INLET_HEIGHT;
-         sphBoundaryCircle(data,newOrigin,0,int((INLET_RADIUS-0.9*PSEP)/PSEP)*PSEP);
+         sphBoundaryCircle(data,newOrigin,0,int((INLET_RADIUS-1.4*PSEP)/PSEP)*PSEP);
       }
       start = true;
       data->traverse<setupInflow,Nsph::ifSphBoundary>();

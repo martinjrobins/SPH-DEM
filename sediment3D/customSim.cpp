@@ -14,6 +14,7 @@ inline void freezeParticles(Cparticle &p,CglobalVars &g) {
 //   p.r -= g.dt*p.vhat/2.0;
 //#else
    p.f = 0.0;
+   //p.fdrag = 0.0;
    p.v = 0.0;
 //#ifdef MANY_PARTICLES
 //   p.v[2] = -VREF;
@@ -72,11 +73,17 @@ void CcustomSim::beforeStart(double newTime) {
 }
 void CcustomSim::beforeMiddle(double newTime) { 
    data->traverse<addGravity,Nsph::ifSph>();
+   //if (data->globals.time <= TIME_DROP_PARTICLE) {
+   //   data->traverse<freezeParticles,Nsph::ifDem>();
+   //}
 }
 
 void CcustomSim::beforeEnd(double newTime) { 
    data->traverse<addGravity,Nsph::ifDem>();
    data->traverse<addCustomBoundaries,Nsph::ifDem>();
+   if (data->globals.time <= TIME_DROP_PARTICLE) {
+      data->traverse<freezeParticles,Nsph::ifDem>();
+   }
 }
 
 void CcustomSim::afterEnd(double newTime) { 

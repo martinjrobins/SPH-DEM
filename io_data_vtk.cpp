@@ -414,6 +414,10 @@ void Cio_data_vtk::writeOutput(int timestep,particleContainer &ps,CcustomSimBase
    vtkFloatArray *fdrag = vtkFloatArray::New();
    vtkFloatArray *shepSum = vtkFloatArray::New();
 #endif
+#ifdef VAR_H_CORRECTION2
+   vtkFloatArray *gradH = vtkFloatArray::New();
+#endif
+
 
 #ifdef SLK
    vtkFloatArray *dr= vtkFloatArray::New();
@@ -448,6 +452,10 @@ void Cio_data_vtk::writeOutput(int timestep,particleContainer &ps,CcustomSimBase
    dr->SetNumberOfTuples(n);
    mass->SetNumberOfValues(n);
 #endif
+#ifdef VAR_H_CORRECTION2
+   gradH->SetNumberOfComponents(3);
+   gradH->SetNumberOfTuples(n);
+#endif
    v->SetNumberOfComponents(3);
    v->SetNumberOfTuples(n);
    vhat->SetNumberOfComponents(3);
@@ -471,6 +479,9 @@ void Cio_data_vtk::writeOutput(int timestep,particleContainer &ps,CcustomSimBase
    dporositydt->SetName("dporositydt");
    shepSum->SetName("shepSum");
    fdrag->SetName("fdrag");
+#endif
+#ifdef VAR_H_CORRECTION2
+   gradH->SetName("gradH");
 #endif
 #ifdef SLK
    dr->SetName("dr");
@@ -517,6 +528,9 @@ void Cio_data_vtk::writeOutput(int timestep,particleContainer &ps,CcustomSimBase
       fb->SetTuple3(i,p->fb[0],p->fb[1],0); 
       fv->SetTuple3(i,p->fv[0],p->fv[1],0); 
       fp->SetTuple3(i,p->fp[0],p->fp[1],0); 
+#ifdef VAR_H_CORRECTION2
+      gradH->SetTuple3(i,p->gradH[0],p->gradH[1],0);
+#endif
 #elif NDIM==3
       newPts->SetPoint(i,newr[0],newr[1],newr[2]);
       v->SetTuple3(i,newv[0],newv[1],newv[2]); 
@@ -526,6 +540,9 @@ void Cio_data_vtk::writeOutput(int timestep,particleContainer &ps,CcustomSimBase
       fb->SetTuple3(i,p->fb[0],p->fb[1],p->fb[2]); 
       fv->SetTuple3(i,p->fv[0],p->fv[1],p->fv[2]); 
       fp->SetTuple3(i,p->fp[0],p->fp[1],p->fp[2]); 
+#ifdef VAR_H_CORRECTION2
+      gradH->SetTuple3(i,p->gradH[0],p->gradH[1],p->gradH[2]);
+#endif
 #endif
 #ifdef SLK
       mass->SetValue(i,p->mass);
@@ -563,6 +580,9 @@ void Cio_data_vtk::writeOutput(int timestep,particleContainer &ps,CcustomSimBase
    dataset->GetPointData()->AddArray(dporositydt);
    dataset->GetPointData()->AddArray(fdrag);
    dataset->GetPointData()->AddArray(shepSum);
+#endif
+#ifdef VAR_H_CORRECTION2
+   dataset->GetPointData()->AddArray(gradH);
 #endif
 #ifdef SLK
    dataset->GetPointData()->AddArray(dr);
@@ -607,6 +627,9 @@ void Cio_data_vtk::writeOutput(int timestep,particleContainer &ps,CcustomSimBase
    dporositydt->Delete();
    shepSum->Delete();
    fdrag->Delete();
+#endif
+#ifdef VAR_H_CORRECTION2
+   gradH->Delete();
 #endif
    v->Delete();
    vhat->Delete();

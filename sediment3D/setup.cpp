@@ -39,6 +39,9 @@ int main(int argc, char *argv[]) {
    cout << "maxtime = "<<MAXTIME<<endl;
    cout << "term vel (3d) is "<<VREF<<endl;
    cout << "term vel (stokes) is "<<(2.0/9.0)*(DEM_DENS-DENS)*9.81*pow(DEM_RADIUS,2)/(VISCOSITY*DENS)<<endl;
+   cout << "vmax = "<<VMAX<<endl;
+   cout << "fluid RE = "<<VMAX*L/VISCOSITY<<endl;
+   cout << "test = "<<(sqrt(8*pow(1.0/40.0,3)*1000*(7000)*9.81/18)/1000)<<endl;
    cout << "DEM_RADIUS = "<<DEM_RADIUS<<endl;
    cout << "gamma must be less than" <<2.0*sqrt(DEM_K*DEM_MIN_REDUCED_MASS)<<endl;
  
@@ -182,11 +185,12 @@ int main(int argc, char *argv[]) {
 
 
    const double totalDEMVol = (ps.size()-numSPH)*(4.0/3.0)*PI*pow(DEM_RADIUS,3);
-   //const double newLiqDens = DENS;
-   const double newLiqDens = DENS*((RMAX[1]-RMIN[1])*(RMAX[0]-RMIN[0])*(RMAX[2]-RMIN[2])-totalDEMVol)/((RMAX[1]-RMIN[1])*(RMAX[0]-RMIN[0])*(RMAX[2]-RMIN[2]));
-   cout << "porosity = "<<1.0-totalDEMVol/((RMAX[0]-RMIN[0])*(RMAX[1]-RMIN[1])*(RMAX[2]-RMIN[2]))<<endl;
+   const double newLiqDens = DENS;
+   //const double newLiqDens = DENS*((RMAX[1]-RMIN[1])*(RMAX[0]-RMIN[0])*(WMAX-RMIN[2])-totalDEMVol)/((RMAX[1]-RMIN[1])*(RMAX[0]-RMIN[0])*(WMAX-RMIN[2]));
+   cout << "porosity = "<<1.0-totalDEMVol/((RMAX[0]-RMIN[0])*(RMAX[1]-RMIN[1])*(WMAX-RMIN[2]))<<endl;
    //cout << "after adding dem particles, new liquid density is "<<newLiqDens<<endl; 
 
+   /*
 #ifdef IN_WATER
    for (vector<Cparticle>::iterator i=ps.begin();i!=ps.end();i++) {
       if (i->iam==sph) {
@@ -195,7 +199,7 @@ int main(int argc, char *argv[]) {
       }
    }
 #endif
-
+   */
 
    cout << "Total number of particles = " << ps.size() << endl;
 
