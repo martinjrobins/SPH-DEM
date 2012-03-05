@@ -44,8 +44,8 @@ const double DENS_DROP[NDIM] = {0,0,0};
 //#define QUINTIC
 #define WENDLAND
 #define VISC_MORRIS
-#define VISC_ARTIFICIAL
-const double ALPHA_ARTIFICIAL = 0.1;
+//#define VISC_ARTIFICIAL
+//const double ALPHA_ARTIFICIAL = 0.1;
 //#define HANN
 //#define VISC_MONAGHAN
 //#define VISC_CLEARY
@@ -57,11 +57,13 @@ const double ALPHA_ARTIFICIAL = 0.1;
 //#define SETTLE
 //#define SPHBOUNDARY
 #define LIQ_DEM
+#define LIQ_DEM_TEST
 //#define LIQ_DEM_SEPARATE_DRAGS
 //#define LIQ_DEM_SIMPLE_DRAG
 //#define LIQ_DEM_ADDED_MASS
 //#define LIQ_DEM_ONE_WAY_COUPLE
 #define LIQ_DEM_CUSTOM_WALL_CONTACTS
+//#define LIQ_DEM_DDDT_VER2
 #define LINEAR
 //#define MANY_PARTICLES
 //#define DENS_DIFFUSE
@@ -100,8 +102,9 @@ const int OUTSTEP = 200;
 const int OUTSTEP = 1000;
 #endif
 const int RESTART_EVERY_N_STEPS = 250;
-const int REINIT_DENS_EVERY_N_STEPS = 500000000;
-const int REINIT_DENS_AT_N_STEPS = 500000000;
+const int REINIT_DENS_EVERY_N_STEPS = 50000000;
+const int REINIT_DENS_AT_N_STEPS = 50000000;
+//#define REINIT_DENS_MLS
 
 
 

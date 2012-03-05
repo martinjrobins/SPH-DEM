@@ -102,7 +102,12 @@ void sphBoundaryCircle(CdataLL *data,const vect &origin,const double radiusMin,c
          p.h = H;
          p.v = 0,0,0;
          p.iam = sphBoundary;
-         data->insertNewParticle(p);
+	 bool isin = true;
+	 for (int k=0;k<NDIM;k++) {
+            isin = isin & p.r[k] >= data->globals.procDomain[k*2];
+            isin = isin & p.r[k] < data->globals.procDomain[k*2+1];
+         }
+         if (isin) data->insertNewParticle(p);
       }
    }
 }

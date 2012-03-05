@@ -45,7 +45,8 @@ const double REFD = 1000.0;
 //#define SETTLE
 //#define SPHBOUNDARY
 #define LIQ_DEM
-#define LIQ_DEM_SEPARATE_DRAGS
+//#define LIQ_DEM_SEPARATE_DRAGS
+#define LIQ_DEM_DDDT_VER2
 #define _2D_DEM
 //#define LIQ_DEM_SIMPLE_DRAG
 //#define LIQ_DEM_ADDED_MASS

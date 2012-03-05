@@ -199,7 +199,7 @@ namespace Nsph {
       inline double K(const double q,const double h) {
 #ifdef WENDLAND
          if (q<=2.0) {
-            return WCON_WENDLAND*pow(2-q,4)*(1+2*q);
+            return WCON_WENDLAND*pow(2.0-q,4)*(1.0+2.0*q);
          } else {
             return 0.0;
          }
@@ -363,14 +363,14 @@ namespace Nsph {
 
          vWab[0] = W(0.0,p.h);
          vect dx = 0.0;
-         calcB_MLS_iteration(dx,vWab[0],matA,dxExt);
+         calcB_MLS_iteration(dx,p.mass*vWab[0]/p.dens,matA,dxExt);
          for (int i=0;i<n;i++) {
             Cparticle *pn = neighbrs[i];
             vect dx = p.r-pn->r;
             //double hav = 0.5*(p.h+pn->h);
             //vWab[i] = W(len(dx)/hav,hav);
             vWab[i+1] = W(len(dx)/p.h,p.h);
-            calcB_MLS_iteration(dx,vWab[i+1],matA,dxExt);
+            calcB_MLS_iteration(dx,pn->mass*vWab[i+1]/pn->dens,matA,dxExt);
          }
          gsl_matrix *invA = gsl_matrix_alloc(NDIM+1,NDIM+1);
          gsl_permutation *perm = gsl_permutation_alloc(NDIM+1);
@@ -381,7 +381,7 @@ namespace Nsph {
 
          b0 = gsl_matrix_get(invA,0,0);
          for (int i=0;i<NDIM;i++) {
-            bRest[i] = gsl_matrix_get(invA,0,i+1);
+            bRest[i] = gsl_matrix_get(invA,i+1,0);
          }
          gsl_matrix_free(matA);
          gsl_matrix_free(invA);
@@ -1283,6 +1283,14 @@ namespace Nsph {
          //p.ff -= p.vhat*(p.dporositydt/p.porosity + p.dddt/p.dens);
       }
 
+#ifdef LIQ_DEM_TEST
+      inline void addGradPorosityTerm(Cparticle &p,CglobalVars &g) {
+         p.f -= p.pdr2*p.gradPorosity*p.dens/p.porosity;
+      }
+#endif
+
+
+
       inline void finalisePorosity2(Cparticle &p ,CglobalVars &g) {
          p.porosity = 1.0-p.porosity;
          if (p.porosity<0.37) {
@@ -1405,6 +1413,10 @@ inline vect calcSPHDrag(const Cparticle &p, const double &porosity, const vect d
 }
 
 inline void calcDrag3(Cparticle &p, vector<Cparticle *> &neighbrs,CglobalVars &g) {
+      if (p.porosity==0) {
+         p.fdrag = 0.0;
+         return;
+      }
       vect epsilonV = 0.0;
       int n = neighbrs.size();
       for (int i=0;i<n;i++) {

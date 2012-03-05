@@ -138,6 +138,9 @@ void CsphIncompress::middle() {
    data->traverse<addBackgroundPressure,ifSphOrSphBoundary>();
 #endif
 #ifdef LIQ_DEM
+#ifdef LIQ_DEM_TEST
+   data->traverse<addGradPorosityTerm,ifSph>();
+#endif
    data->globals.newDt = min(data->globals.newDt,liqDemCondition());
 #ifndef FIXED_DEM
 #ifndef NO_DEM_CONTACTS
@@ -205,6 +208,12 @@ void CsphIncompress::end() {
    data->neighboursGroup<calcGradH,ifSphOrSphBoundary>();
 #endif
    data->syncParticlesBetweenProcs<vect,readGradH,writeGradH>();
+#endif
+#ifdef LIQ_DEM_DDDT_VER2
+   data->neighboursGroupCoupling<calcPorosity2,ifSphOrSphBoundary>();
+   data->traverse<finalisePorosity2,ifSphOrSphBoundary>();
+   data->syncParticlesBetweenProcs<double,readPorosity,writePorosity>();
+   data->syncParticlesBetweenProcs<double,read_dPorositydt,write_dPorositydt>();
 #endif
 
 

@@ -69,6 +69,9 @@ class CsphIncompress {
       static void writePorosity(Cparticle &p,double porosity) {
          p.porosity = porosity;
       }
+      static void write_dPorositydt(Cparticle &p,double dporositydt) {
+         p.dporositydt = dporositydt;
+      }
       static void sumPorosity(Cparticle &p,double porosity) {
          p.porosity += porosity;
       }
@@ -696,8 +699,8 @@ class CsphIncompress {
             p.v = p.v0 + dt*p.f;
             p.vhat = p.vhat0 + dt*p.f;
             if (g.time < DAMPTIME) {
-               p.v *= 0.998;
-               p.vhat *= 0.998;
+               p.v *= 0.98;
+               p.vhat *= 0.98;
             }
 #ifdef FIXED_DEM
             if (p.iam==dem) {
@@ -808,8 +811,11 @@ class CsphIncompress {
 #endif
 
          
-
+#ifdef LIQ_DEM_DDDT_VER2
+         pa.dddt += (pa.porosity/pb.porosity)*(dddtInc + pb.mass*W(r/pa.h,pa.h)*(pa.dporositydt/pa.porosity - pb.dporositydt/pb.porosity));
+#else
          pa.dddt += dddtInc;
+#endif
          //cout <<"pa.dddt = "<<dddtInc<<"pb.mass = "<<pb.mass<<" vdr "<<vdr<<" q = "<<q<<"hav = "<<hav<<"Fa = "<<Fa<<" pa.r = "<<pa.r<<" pb.r "<<pb.r<<endl;
 
 #ifdef DENS_DIFFUSE
@@ -917,6 +923,8 @@ class CsphIncompress {
 #ifdef NO_ANTICLUMPING
          double kdwPowNeps = 0.0;
 #else
+         const double hav = 0.5*(pa.h+pb.h);
+         const double q = r/hav;
          const double kdw = K(q,hav)/K(1.0/HFAC,1.0);
          const double kdwPowNeps = pow(kdw,NEPS);
 #endif

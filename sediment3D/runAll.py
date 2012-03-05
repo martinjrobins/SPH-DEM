@@ -275,7 +275,7 @@ for i in [water_glycerol,water,air,water2,water3]:
       beta = 3.7 - 0.65*exp(-((1.5-log10(re))**2.0)/2.0);
       C =(0.63 + 4.8/(re**0.5))**2.0;
       termV = re*i.visc/(d);
-      print "dens = ",i.dens," kg/m^3 kinematic viscosity = ",i.visc," m^2/s porosity = ",p," RE_p = ",re," term velocity = ",termV," m/s"," beta = ",beta," f = ",C*p**(2-beta);
+      print "dens = ",i.dens," kg/m^3 kinematic viscosity = ",i.visc," m^2/s porosity = ",p," RE_p = ",re," term velocity = ",termV," m/s"," beta = ",beta," f = ",C*p**(2-beta)," Ar = ",d**3*i.dens*(dem_dens-i.dens)*9.81/((i.visc*i.dens)**2);
 
 for i in [water_glycerol,water,air]:
    re = calcRe(d,dem_dens,i.dens,i.visc,1.0);

@@ -284,7 +284,7 @@ cout <<" tdem = "<< (1.0/50.0)*PI*sqrt(DEM_MIN_REDUCED_MASS)/sqrt(DEM_K-pow(0.5*
    vector<Array<int,NDIM> > vprocNeighbrs(globals.mpiSize);
    vector<particleContainer > vps;
    vectInt split;
-   split = 1,1,1;
+   split = NCPU_X,NCPU_Y,NCPU_Z;
    particleContainer pps;
    for (int i=0;i<ps.size();i++) {
       pps.push_back(ps[i]);

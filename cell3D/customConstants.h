@@ -56,7 +56,7 @@ const double ALPHA_ARTIFICIAL = 0.1;
 #define LIQ_DEM
 #define LIQ_DEM_CUSTOM_WALL_CONTACTS
 //#define LIQ_DEM_SEPARATE_DRAGS
-#define LINEAR
+//#define LINEAR
 //#define LUBRICATION
 const double ROUGHNESS_EPSILON = 0.01;
 #define NO_ANTICLUMPING
@@ -69,7 +69,7 @@ const double ROUGHNESS_EPSILON = 0.01;
 const double MAXTIME = 8.0;
 const double DAMPTIME = 0.0;
 const int OUTSTEP = 1000;
-const int RESTART_EVERY_N_STEPS = 50;
+const int RESTART_EVERY_N_STEPS = 100;
 const int REINIT_DENS_EVERY_N_STEPS = 2000000;
 const int REINIT_DENS_AT_N_STEPS = 2000000;
 const double TIME_START_INLET = MAXTIME/16.0;
@@ -127,7 +127,8 @@ const double gammaOnmr = pow(0.5*DEM_GAMMA/DEM_MIN_REDUCED_MASS,2);
 const double THETS = PI/sqrt(Konmr-gammaOnmr);
 const double CR = exp(-DEM_GAMMA*THETS/(2.0*DEM_MIN_REDUCED_MASS));
 
-const int MAX_NUM_PARTICLES_PER_CPU = 4.0*NX*NY*CYLINDER_HEIGHT/PSEP + 1.0*NDEM;
+const int NCPU = NCPU_X*NCPU_Y*NCPU_Z;
+const int MAX_NUM_PARTICLES_PER_CPU = 1.3*PI*pow(CYLINDER_RADIUS,2)*CYLINDER_HEIGHT/(pow(PSEP,NDIM)*NCPU) + 1.0*NDEM;
 const int MAX_NUM_DEM_PARTICLES = 1.0*NDEM;
 const double LIQ_DEM_COUPLING_RADIUS = 6.0*DEM_RADIUS;
 
@@ -135,6 +136,7 @@ const double APPROX_SMOOTH_GRID_SIZE = H;
 const double SMOOTH_GRID_SIZE = (BMAX[0]-BMIN[0])/floor((BMAX[0]-BMIN[0])/APPROX_SMOOTH_GRID_SIZE+0.5);
 
 const double GRIDSEP = PSEP;
+
 
 #define MIN_ALPHA 0.1
 #endif

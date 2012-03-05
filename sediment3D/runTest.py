@@ -3,8 +3,19 @@ import sys
 import os
 import shutil,glob
 import datetime
-from scipy.optimize import fsolve
+noFsolve = False
+try:
+   from scipy.optimize import fsolve
+except ImportError:
+   noFsolve = True
 from numpy import exp,log10
+
+def writePbsFile(name):
+   filename = "pbs-script"
+   file = open(filename,"w")
+   file.write("#PBS -N "+name+"\n")
+   file.write(open("pbs-script-base","r").read())
+   file.close()
 
 def writeParametersSingle(res,dens,visc,re):
    filename = "parameters.h"
@@ -44,7 +55,7 @@ def writeParametersSingleTwoWayHigher(res,dens,visc,re):
    file.write("const double VISCOSITY = "+str(visc)+";\n")
    file.write("const double DENS = "+str(dens)+";\n")
    file.write("const double REYNOLDS_NUMBER = "+str(re)+";\n")
-   file.write("const double HMULT  = "+str(4.0)+";\n")
+   file.write("const double HMULT  = "+str(60.0)+";\n")
    file.close()
 
 
@@ -61,6 +72,17 @@ def writeParametersSingleDiFelise(res,dens,visc,re):
    file.write("const double HMULT  = "+str(2.0)+";\n")
    file.close()
 
+def writeParametersSingleDiFeliseHigher(res,dens,visc,re):
+   filename = "parameters.h"
+   file = open(filename,"w")
+   file.write("#define IN_WATER\n")
+   file.write("const double POROSITY = 1.0;\n")
+   file.write("const int NX = "+str(res)+";\n")
+   file.write("const double VISCOSITY = "+str(visc)+";\n")
+   file.write("const double DENS = "+str(dens)+";\n")
+   file.write("const double REYNOLDS_NUMBER = "+str(re)+";\n")
+   file.write("const double HMULT  = "+str(60.0)+";\n")
+   file.close()
 
 def writeParametersSingleAM(res,dens,visc,re):
    filename = "parameters.h"
@@ -107,6 +129,24 @@ def writeParametersMultiGrid(p,res,dens,visc,re):
    file.write("const double HMULT  = "+str(2.0)+";\n")
    file.close()
 
+def writeParametersMultiGridShort(p,res,dens,visc,re):
+   filename = "parameters.h"
+   file = open(filename,"w")
+   file.write("#define MANY_PARTICLES\n")
+   file.write("#define GRID_OF_DEM\n")
+   file.write("#define GRID_OF_DEM_PERT\n")
+   file.write("#define IN_WATER\n")
+   file.write("#define SHORT_TIME\n")
+   file.write("const double POROSITY = "+str(p)+";\n")
+   file.write("const int NX = "+str(res)+";\n")
+   file.write("const double VISCOSITY = "+str(visc)+";\n")
+   file.write("const double DENS = "+str(dens)+";\n")
+   file.write("const double REYNOLDS_NUMBER = "+str(re)+";\n")
+   file.write("const double HMULT  = "+str(2.0)+";\n")
+   file.close()
+
+
+
 def writeParametersMultiGridBlock(p,res,dens,visc,re):
    filename = "parameters.h"
    file = open(filename,"w")
@@ -152,10 +192,13 @@ def copyToDirectory(dirName):
    copyPattern("*.m",dirName)
 
 
-def runSimulation(newDir):
+def runSimulation(newDir,name):
    currDir = os.getcwd()
    os.chdir(newDir)
    os.system("./setup initData")
+   #shutil.copy(currDir+"/pbs-script-base",newDir)
+   #writePbsFile(name)
+   #os.system("qsub pbs-script")
    #os.system("nohup nice -n 19 ./run initData 0 results &")
    os.chdir(currDir)
 
@@ -171,7 +214,11 @@ def f(re,args):
 def calcRe(d,dem_dens,dens,visc,p):
    ar = d**3*(dem_dens/dens - 1.0)*9.81/(visc**2);
    re0 = ar/18.0;
-   rePlus = fsolve(f,re0,[ar,p]);
+   global noFsolve
+   if not noFsolve:
+      rePlus = fsolve(f,re0,[ar,p]);
+   else:
+      rePlus = re0;
    re = rePlus;
    return re
 
@@ -182,7 +229,11 @@ def f2(re,args):
 def calcRe2(d,dem_dens,dens,visc):
    ar = d**3*(dem_dens/dens - 1.0)*9.81/(visc**2);
    re0 = ar/18.0;
-   rePlus = fsolve(f2,re0,[ar]);
+   global noFsolve
+   if not noFsolve:
+      rePlus = fsolve(f,re0,[ar,p]);
+   else:
+      rePlus = re0;
    re = rePlus;
    return re
 
@@ -214,26 +265,15 @@ air.name = "air";
 d = 100.0e-6;
 dem_dens = 2500.0;
 
-for i in [water_glycerol,water,air,water2,water3]:
-   #re = calcRe2(d,dem_dens,i.dens,i.visc);
-   #termV = re*i.visc/(d);
-   #print "dens = ",i.dens," kg/m^3 kinematic viscosity = ",i.visc," m^2/s porosity = ",1.0," RE_p = ",re," term velocity = ",termV," m/s";
-   for p in [0.6,0.7,0.8,0.86,0.9,1.0]:
-      re = calcRe(d,dem_dens,i.dens,i.visc,p);
-
-      beta = 3.7 - 0.65*exp(-((1.5-log10(re))**2.0)/2.0);
-      C =(0.63 + 4.8/(re**0.5))**2.0;
-      termV = re*i.visc/(d);
-      print "dens = ",i.dens," kg/m^3 kinematic viscosity = ",i.visc," m^2/s porosity = ",p," RE_p = ",re," term velocity = ",termV," m/s"," beta = ",beta," f = ",C*p**(2-beta);
-
-for i in [water_glycerol,water,air]:
+for i in [water]:
    for res in [10]:
-      for porosity in [0.8]:
+      for porosity in [0.7,0.8]:
          re = calcRe(d,dem_dens,i.dens,i.visc,porosity);
-         writeParametersMultiGrid(porosity,res,i.dens,i.visc,re)
+         writeParametersMultiGridBlock(porosity,res,i.dens,i.visc,re)
          compileProgram()
-         newDir = os.environ["HOME"]+"/data/sediment3D/"+baseName+"/multi"+str(porosity)+"grid"+str(res)+"_"+i.name+"/"
+         name = "multi"+str(porosity)+"gridBlock"+str(res)+"_"+i.name+"/"
+         newDir = os.environ["HOME"]+"/data/sediment3D/"+baseName+"/"+name
          copyToDirectory(newDir)
-         runSimulation(newDir)
+         runSimulation(newDir,name)
 
 
