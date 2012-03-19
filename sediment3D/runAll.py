@@ -207,8 +207,8 @@ class fluid:
 
 def f(re,args):
    beta = 3.7 - 0.65*exp(-((1.5-log10(re))**2.0)/2.0);
-   factor = args[1]**(-beta);
-   f = 0.3969*re**2 + 6.048*re**1.5 + 23.04*re - (4.0/3.0)*args[0]/factor;
+   factor = args[1]**(1+beta);
+   f = 0.3969*re**2 + 6.048*re**1.5 + 23.04*re - (4.0/3.0)*args[0]*factor;
    return f
 
 def calcRe(d,dem_dens,dens,visc,p):
@@ -269,7 +269,8 @@ for i in [water_glycerol,water,air,water2,water3]:
    #re = calcRe2(d,dem_dens,i.dens,i.visc);
    #termV = re*i.visc/(d);
    #print "dens = ",i.dens," kg/m^3 kinematic viscosity = ",i.visc," m^2/s porosity = ",1.0," RE_p = ",re," term velocity = ",termV," m/s";
-   for p in [0.5,0.55,0.6,0.65,0.7,0.8,0.86,0.9,1.0]:
+   #for p in [0.5,0.55,0.6,0.65,0.7,0.8,0.9,1.0]:
+   for p in [0.64,0.71,0.77,0.85,0.92,1.0]:
       re = calcRe(d,dem_dens,i.dens,i.visc,p);
 
       beta = 3.7 - 0.65*exp(-((1.5-log10(re))**2.0)/2.0);

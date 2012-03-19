@@ -60,6 +60,7 @@ const double ALPHA_ARTIFICIAL = 0.1;
 //#define DENS_DIFFUSE
 #define NO_ANTICLUMPING
 #define CONST_H
+#define SLIP_BOUNDARIES
 //#define CORRECTED_GRADIENT
 //#define MORRIS_SPH_BOUNDARY
 //#define CHECK_FOR_NAN

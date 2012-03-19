@@ -34,6 +34,7 @@ int main(int argc, char *argv[]) {
    cout << "VMAX is "<<VMAX<<endl;
 
    cout << "PSEP = "<<PSEP<<endl;
+   cout << "p.mass = "<<pow(PSEP,NDIM)*DENS<<endl;
    cout << "alpha = "<<ALPHA<<endl;
    cout << "viscosity = "<<VISCOSITY<<endl;
    cout << "maxtime = "<<MAXTIME<<endl;

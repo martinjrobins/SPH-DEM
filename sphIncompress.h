@@ -916,7 +916,12 @@ class CsphIncompress {
 #endif
 #endif
 
+#ifdef SLIP_BOUNDARIES
+            if (!ifBoundary(pb)) calcViscForce(pa,pb,g,0.5*(gradWa+gradWb),dv,r);
+#else
             calcViscForce(pa,pb,g,0.5*(gradWa+gradWb),dv,r);
+#endif
+               
 
          }
         
