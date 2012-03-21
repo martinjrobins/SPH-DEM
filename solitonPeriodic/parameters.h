@@ -9,7 +9,7 @@ const double L4 = 1.0;
 const double L5 = 1.0;
 const double WIDTH = 1.0;
 
-const int NCPU = 2; //number of cpus to use. Its MPI so go nuts! :)
+const int NCPU = 16; //number of cpus to use. Its MPI so go nuts! :)
 
 const double MAXTIME = 7.0;
 const double WALLUP = 0.2; //time the gate starts to be removed
@@ -22,7 +22,7 @@ const int gateWidth = 4; //gate width measured in PSEP (particle separation)
 //PY and RY define resolution. the periodic section is 1/RY the width of the
 //channel and there are 2*PY particles across this periodic section
 const int PY = 3;
-const int RY = 2;
+const int RY = 6;
 
 //#define BORE_SOLITON
 
