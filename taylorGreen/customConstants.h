@@ -25,6 +25,11 @@ const int PERIODIC[NDIM] = {1,1};
 
 const double DENS = 1000.0;
 const double REFD = 1000.0;
+const int GHOST[2*NDIM] = {0,0,0,0};
+const double DENS_DROP[NDIM] = {0,0};
+
+
+#define TEST_VISC
 //#define QUINTIC
 #define WENDLAND
 //#define VISC_MORRIS
@@ -49,21 +54,23 @@ const double EPSILON = 0.9;
 //const double EPSILON = 1.5;
 //#define GRID_SMOOTHING
 
-#define LIQ_DEM
-const double DEM_RADIUS = 1.0;
-const double DEM_DENS = 1000;
+//#define LIQ_DEM
+//const double DEM_RADIUS = 1.0;
+//const double DEM_DENS = 1000;
 
 #define NO_ANTICLUMPING
-//#define CONST_H
+#define CONST_H
 //#define MORRIS_SPH_BOUNDARY
 //#define INCL_THERM_ENERGY
 
 
 
 const double MAXTIME = 6;
-const int OUTSTEP = 1000;
+const double DAMPTIME = 0;
+const int OUTSTEP = 100;
 const int RESTART_EVERY_N_STEPS = 100;
 const int REINIT_DENS_EVERY_N_STEPS = 2000000;
+const int REINIT_DENS_AT_N_STEPS = 2000000;
 const int DAMP_STEPS = 0;
 
 const double NVORT = 2;
@@ -88,8 +95,8 @@ const double MY_VAR_RES_DV = VMAX/8.0;
 //const int NX = static_cast<int>((RMAX[0]-RMIN[0])/PSEP);
 //const int NY = static_cast<int>((RMAX[1]-RMIN[1])/PSEP);
 
-const int NX = 50;
-const int NY = 50;
+const int NX = 20;
+const int NY = 20;
 const double PSEP = (RMAX[0]-RMIN[0])/NX;
 //const double H = HFAC*PSEP;
 const double H = HFAC*(RMAX[0]-RMIN[0])/NX;
@@ -97,6 +104,7 @@ const double BFAC = 1.0;
 
 const double APPROX_SMOOTH_GRID_SIZE = H;
 const double SMOOTH_GRID_SIZE = (RMAX[0]-RMIN[0])/floor((RMAX[0]-RMIN[0])/APPROX_SMOOTH_GRID_SIZE+0.5);
+const int MAX_NUM_PARTICLES_PER_CPU = NX*NY+1;
 
 const double GRIDSEP = PSEP;
 

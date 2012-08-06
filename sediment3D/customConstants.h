@@ -49,7 +49,7 @@ const double ALPHA_ARTIFICIAL = 0.1;
 //#define HANN
 //#define VISC_MONAGHAN
 //#define VISC_CLEARY
-#define VORT_LEASTSQUARES
+//#define VORT_LEASTSQUARES
 //#define REFERENCE_FRAME
 //#define CORRECTED_GRADIENT
 #define VAR_H_CORRECTION
@@ -57,10 +57,14 @@ const double ALPHA_ARTIFICIAL = 0.1;
 //#define SETTLE
 //#define SPHBOUNDARY
 #define LIQ_DEM
+//#define LIQ_DEM_TEST
+//#define LIQ_DEM_SEPARATE_DRAGS
+//#define HALF_COURANT
 //#define LIQ_DEM_SIMPLE_DRAG
 //#define LIQ_DEM_ADDED_MASS
 //#define LIQ_DEM_ONE_WAY_COUPLE
 #define LIQ_DEM_CUSTOM_WALL_CONTACTS
+//#define LIQ_DEM_DDDT_VER2
 #define LINEAR
 //#define MANY_PARTICLES
 //#define DENS_DIFFUSE
@@ -73,7 +77,7 @@ const double DEM_MASS = DEM_VOL*DEM_DENS;
 const double DEM_GAMMA = 0;
 const double DEM_MIN_REDUCED_MASS = 0.5*DEM_MASS;
 #define NO_ANTICLUMPING
-#define CONST_H
+//#define CONST_H
 //#define MORRIS_SPH_BOUNDARY
 //#define FIXED_DEM
 
@@ -84,9 +88,13 @@ const double DEM_MIN_REDUCED_MASS = 0.5*DEM_MASS;
 
 const double VREF = 0.5*VISCOSITY*REYNOLDS_NUMBER/(POROSITY*DEM_RADIUS);
 //const double VMAX = sqrt(2*9.81*(1.0+0.5*(1-POROSITY)*(DEM_DENS-DENS)/DENS)*(RMAX[2]-RMIN[2]));
-const double VMAX = sqrt(2*9.81*(RMAX[2]-RMIN[2]));
+const double VMAX = 2.0*sqrt(2*9.81*(RMAX[2]-RMIN[2]));
 
+#ifdef SHORT_TIME
+const double MAXTIME = 0.15*L*HMULT/VREF;
+#else
 const double MAXTIME = 1.5*L*HMULT/VREF+0.1;
+#endif
 const double TIME_DROP_PARTICLE = (1.0/3.0)*MAXTIME;
 const int DAMPTIME = TIME_DROP_PARTICLE/2.0;
 #ifdef MANY_PARTICLES
@@ -95,7 +103,9 @@ const int OUTSTEP = 200;
 const int OUTSTEP = 1000;
 #endif
 const int RESTART_EVERY_N_STEPS = 250;
-const int REINIT_DENS_EVERY_N_STEPS = 500000000;
+const int REINIT_DENS_EVERY_N_STEPS = 50000000;
+const int REINIT_DENS_AT_N_STEPS = 50000000;
+//#define REINIT_DENS_MLS
 
 
 

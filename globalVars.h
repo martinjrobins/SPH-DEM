@@ -15,6 +15,9 @@ class CglobalVars {
          time = 0;
          dt = 0;
          newDt = 0;
+#ifdef LIQ_DEM
+         demDt = 0;
+#endif
          angMom = 0;
          linMom = 0;
          eElast = 0;
@@ -69,6 +72,9 @@ class CglobalVars {
 
          dt = g.dt;
          newDt = g.newDt;
+#ifdef LIQ_DEM
+         demDt = g.demDt;
+#endif
          time = g.time;
          sphStep = g.sphStep;
          for (int i=0;i<GLOBAL_CUSTOM_BUFFER_SIZE;i++) {
@@ -130,6 +136,9 @@ class CglobalVars {
          sphStep = g.sphStep; 
          dt = g.dt;
          newDt = g.newDt;
+#ifdef LIQ_DEM
+	 demDt = g.demDt;
+#endif
          maxdt = g.maxdt;
          mpiSize = g.mpiSize;
          aveDens = g.aveDens;
@@ -185,6 +194,9 @@ class CglobalVars {
       double maxV, aveDens, varDens, aveDensFromMass;
       double maxF, maxFF,rmsFF;
       double dt,newDt,maxdt;
+#ifdef LIQ_DEM
+      double demDt;
+#endif
       int n,nSph;
 #ifdef SPH_SMOOTHING
       vect alpha,beta,residual2,alphaDenom;

@@ -15,7 +15,7 @@ CdataLL::CdataLL(particleContainer &in_ps, CglobalVars &in_globals,bool opt): ps
    }
    cells.resize(static_cast<vectInt>((cell_max-cell_min)/(KERNAL_RADIUS*sph_search_radius))+8);
 #ifdef LIQ_DEM
-   dem_cells.resize(static_cast<vectInt>((cell_max-cell_min)/(2*DEM_SEARCH_RADIUS))+2*3*H/DEM_SEARCH_RADIUS);
+   dem_cells.resize(static_cast<vectInt>((cell_max-cell_min)/(2*DEM_SEARCH_RADIUS))+2*2*LIQ_DEM_COUPLING_RADIUS/DEM_SEARCH_RADIUS);
 #endif
    
    cout << "size of particle array = "<<ps.capacity()*sizeof(Cparticle)/1024/1024<<" MB"<<endl;
@@ -32,10 +32,8 @@ CdataLL::CdataLL(particleContainer &in_ps, CglobalVars &in_globals,bool opt): ps
       cout<<globals.procDomain[i]<<' ';
    }
 
-   // if prompted, init the sorted traverse order
-   if (opt) {
-      initTraverseOrder();
-   }
+   // init the sorted traverse order
+   initTraverseOrder(opt);
 
    // reset all data (neighbours, ghosts, mpi comms etc)
    reset();
@@ -345,15 +343,23 @@ void CdataLL::updateDomain() {
       dgmin[i] = dmin[i] + procGhostMax2H(coords);
       dgspace[i] = dspace[i] - procGhostMax2H(coords);
 #ifdef LIQ_DEM
-      liq_dgmin[i] = dmin[i] + max(procGhostMax2H(coords),LIQ_DEM_COUPLING_RADIUS);
-      dem_dgmin[i] = dmin[i] + 2.0*DEM_RADIUS;
-      liq_dgspace[i] = dspace[i] - max(procGhostMax2H(coords),LIQ_DEM_COUPLING_RADIUS);
-      dem_dgspace[i] = dspace[i] - 4.0*DEM_RADIUS;
+      liq_dgmin[i] = dmin[i] + procGhostMax2H(coords);
+      dem_dgmin[i] = dmin[i] + LIQ_DEM_COUPLING_RADIUS;
+      //liq_dgmin[i] = dmin[i] + max(procGhostMax2H(coords),LIQ_DEM_COUPLING_RADIUS);
+      //dem_dgmin[i] = dmin[i] + 2.0*DEM_RADIUS;
+      //dem_dgmin[i] = liq_dgmin[i];
+      //liq_dgspace[i] = dspace[i] - max(procGhostMax2H(coords),LIQ_DEM_COUPLING_RADIUS);
+      liq_dgspace[i] = dspace[i] - procGhostMax2H(coords);
+      dem_dgspace[i] = dspace[i] - LIQ_DEM_COUPLING_RADIUS;
+      //dem_dgspace[i] = dspace[i] - 4.0*DEM_RADIUS;
 #endif
       coords[i] = 2;
       dgspace[i] -= procGhostMax2H(coords);
 #ifdef LIQ_DEM
-      liq_dgspace[i] -= max(procGhostMax2H(coords),LIQ_DEM_COUPLING_RADIUS);
+      liq_dgspace[i] -= procGhostMax2H(coords);
+      //liq_dgspace[i] -= max(procGhostMax2H(coords),LIQ_DEM_COUPLING_RADIUS);
+      //dem_dgspace[i] = liq_dgspace[i];
+      dem_dgspace[i] -= LIQ_DEM_COUPLING_RADIUS;
 #endif
    }
    //cout <<"liq_dgmin = "<<liq_dgmin<<" liq_dgspace = "<<liq_dgspace<<" dem_dgmin = "<<dem_dgmin<<" dem_dgspace = "<<dem_dgspace<<endl;
@@ -374,7 +380,7 @@ void CdataLL::updateDomain() {
       }
       vectInt outCoords = static_cast<vectInt>((thisP->r-dmin)/dspace+1);
       if (any(outCoords>2)||any(outCoords<0)) {
-         cerr << "Particle out of range! Tag = "<<thisP->tag<<" iam = "<<thisP->iam<<" position = "<<thisP->r<<" velocityhat = "<<thisP->vhat<<" velocity = "<<thisP->v<<" density = "<<thisP->dens<<" total force = "<<thisP->f<<" pressure force = "<<thisP->fp<<" boundary force = "<<thisP->fb<<endl;
+         cerr << "Particle out of range! Tag = "<<thisP->tag<<" iam = "<<thisP->iam<<" position = "<<thisP->r<<" velocityhat = "<<thisP->vhat<<" velocity = "<<thisP->v<<" density = "<<thisP->dens<<" total force = "<<thisP->f<<" pressure force = "<<thisP->fp<<" boundary force = "<<thisP->fb<<" viscous force = "<<thisP->fv<<endl;
          deleteParticle(ppInfoLink,ppInfo);
          continue;
       }
@@ -549,7 +555,7 @@ void CdataLL::updateDomain() {
          for (Array<int,NDIM>::iterator pD = dummy.begin();pD !=dummy.end();pD++) {
             vectInt dCoords = pD.position();
             if (globals.procNeighbrs(dCoords) >= 0) {
-               //if ((globals.mpiRank==0)&&(dCoords[0]==2)&&(dCoords[1]==1)&&(dCoords[2]==0)) cout <<"mpiRank = "<<globals.mpiRank<<". adding type "<<thisP->iam<<" at r = "<<thisP->r<<" to "<<dCoords<<endl; 
+               //if ((thisP->iam==11)&&((dCoords[1]==2)||(dCoords[1]==0))) cout <<"mpiRank = "<<globals.mpiRank<<". adding type "<<thisP->iam<<" at r = "<<thisP->r<<" to "<<dCoords<<endl; 
                //add to ghost particle array
                if (ghostIndicies(dCoords)>=gBufferSizes(dCoords)) {
                   cerr << "ghostBuffers are full, exiting...."<<endl;
@@ -918,9 +924,11 @@ void CdataLL::checkPinfos() {
 }
 
 
-void CdataLL::initTraverseOrder() {
+void CdataLL::initTraverseOrder(bool opt) {
    initPinfos();   
-   sortPInfos();
+   if (opt) {
+      sortPInfos();
+   } 
    checkPinfos();
 }
 
@@ -1094,7 +1102,32 @@ void CdataLL::calcNeighboursAtRadius(vector<Cparticle *> &_neighbrs,Cparticle &_
 
 #ifdef LIQ_DEM
 void CdataLL::calcNeighboursCoupling(vector<Cparticle *> &_neighbrs,Cparticle &_p) {
-   const int num_cells = int(ceil(0.5*LIQ_DEM_COUPLING_RADIUS/hmax));
+   if (_p.iam==dem) {
+
+      vectInt cellI = getCellI(_p.r);
+      vectInt tcellI = cellI;
+      for (int i=cellI[0]-1;i<=cellI[0]+1;i++) {
+         tcellI[0] = i;
+         if (NDIM > 1) {
+            for (int j=cellI[1]-1;j<=cellI[1]+1;j++) {
+               tcellI[1] = j;
+               if (NDIM > 2) {
+                  for (int k=cellI[2]-1;k<=cellI[2]+1;k++) {
+                     tcellI[2] = k;
+                     addIfNeighbr(_p,_neighbrs,cells(tcellI));
+                  }
+               } else {
+                  addIfNeighbr(_p,_neighbrs,cells(tcellI));
+               }
+            }
+         } else {
+            addIfNeighbr(_p,_neighbrs,cells(tcellI));
+         } 
+      }
+
+
+   /*
+   const int num_cells = int(ceil(0.5*LIQ_DEM_COUPLING_RADIUS/sph_search_radius));
    vectInt cellI = getCellI(_p.r);
    vectInt tcellI = cellI;
    for (int i=cellI[0]-num_cells;i<=cellI[0]+num_cells;i++) {
@@ -1115,8 +1148,10 @@ void CdataLL::calcNeighboursCoupling(vector<Cparticle *> &_neighbrs,Cparticle &_
          addIfInRadius(_p,_neighbrs,cells(tcellI),pow(LIQ_DEM_COUPLING_RADIUS,2));
       } 
    }
-   if (_p.iam!=dem) {
-      const int num_cells = int(ceil(0.5*LIQ_DEM_COUPLING_RADIUS/DEM_RADIUS));
+   */
+
+   } else {
+      const int num_cells = int(ceil(0.5*LIQ_DEM_COUPLING_RADIUS/DEM_SEARCH_RADIUS));
       vectInt cellI = dem_getCellI(_p.r);
       vectInt tcellI = cellI;
       for (int i=cellI[0]-num_cells;i<=cellI[0]+num_cells;i++) {
@@ -1133,18 +1168,18 @@ void CdataLL::calcNeighboursCoupling(vector<Cparticle *> &_neighbrs,Cparticle &_
                      tcellI[2] = k;
                      const int rPlus2 = iPlus2+jPlus2+pow(k-cellI[2]+1,2);
                      const int rMinus2 = iMinus2+jMinus2+pow(k-cellI[2]-1,2);
-                     if (rPlus2<pow(LIQ_DEM_COUPLING_RADIUS/DEM_RADIUS,2)) {
+                     if (rPlus2<pow(0.5*LIQ_DEM_COUPLING_RADIUS/DEM_SEARCH_RADIUS,2)) {
                         addAll(_p,_neighbrs,dem_cells(tcellI));
-                     } else if (rMinus2<pow(LIQ_DEM_COUPLING_RADIUS/DEM_RADIUS,2)) {
+                     } else if (rMinus2<pow(0.5*LIQ_DEM_COUPLING_RADIUS/DEM_SEARCH_RADIUS,2)) {
                         addIfInRadius(_p,_neighbrs,dem_cells(tcellI),pow(LIQ_DEM_COUPLING_RADIUS,2));
                      }
                   }
                } else {
                   const int rPlus2 = iPlus2+jPlus2;
                   const int rMinus2 = iMinus2+jMinus2;
-                  if (rPlus2<pow(LIQ_DEM_COUPLING_RADIUS/DEM_RADIUS,2)) {
+                  if (rPlus2<pow(0.5*LIQ_DEM_COUPLING_RADIUS/DEM_SEARCH_RADIUS,2)) {
                      addAll(_p,_neighbrs,dem_cells(tcellI));
-                  } else if (rMinus2<pow(LIQ_DEM_COUPLING_RADIUS/DEM_RADIUS,2)) {
+                  } else if (rMinus2<pow(0.5*LIQ_DEM_COUPLING_RADIUS/DEM_SEARCH_RADIUS,2)) {
                      addIfInRadius(_p,_neighbrs,dem_cells(tcellI),pow(LIQ_DEM_COUPLING_RADIUS,2));
                   }
                }
@@ -1168,10 +1203,12 @@ Cparticle *CdataLL::getParticleFromTag(int tag) {
          tagSortedParticlePointers[i->tag-1].tag = i->tag;
          tagSortedParticlePointers[i->tag-1].p = &(*i);
       }
+      cout <<"finished filling tagSortedParticlePointers"<<endl;
    }
    if (tagSortedParticlePointers[tag-1].tag != tag) {
-      cerr << "Error in CdataLL::getParticleFromTag(): the tag aint here!!!"<<endl;
-      exit(-1);
+      //cerr << "Error in CdataLL::getParticleFromTag(): looking for tag = "<<tag<<" but found "<<tagSortedParticlePointers[tag-1].tag<<". Tag not found :("<<endl;
+      return NULL;
+      //exit(-1);
    }
    return tagSortedParticlePointers[tag-1].p;
 }
@@ -1187,6 +1224,7 @@ CpInfo *CdataLL::getPinfoFromTag(int tag) {
          tagSortedPinfoPointers[i->p->tag-1].tag = i->p->tag;
          tagSortedPinfoPointers[i->p->tag-1].pInfo = &(*i);
       }
+      cout <<"finished filling tagSortedParticlePointers"<<endl;
    }
    if (tagSortedPinfoPointers[tag-1].tag != tag) {
       cerr << "Error in CdataLL::getPinfoFromTag(): the tag aint here!!!"<<endl;
@@ -1213,7 +1251,7 @@ int CdataLL::calcBufferSize(vectInt coords) {
          bufferSize *= ceil((globals.procDomain[i*2+1]-globals.procDomain[i*2])/PSEP)+1;
       } else {
 #ifdef LIQ_DEM
-         bufferSizeDem *= 2;
+         bufferSizeDem *= ceil(0.5*LIQ_DEM_COUPLING_RADIUS/DEM_RADIUS);
          bufferSize *= ceil(LIQ_DEM_COUPLING_RADIUS/PSEP);
 #endif
          bufferSize *= ceil(2.0*H/PSEP)+1;

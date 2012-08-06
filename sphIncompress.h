@@ -47,7 +47,28 @@ class CsphIncompress {
       }
 #endif
 
+#ifdef VAR_H_CORRECTION2
+      static vect readGradH(Cparticle &p) {
+         return p.gradH;
+      }
+      static void writeGradH(Cparticle &p,vect gradH) {
+         p.gradH = gradH;
+      }
+      static void sumGradH(Cparticle &p,vect gradH) {
+         p.gradH += gradH;
+      }
+#endif
+
 #ifdef LIQ_DEM
+      static double readShepSum(Cparticle &p) {
+         return p.shepSum;
+      }
+      static void writeShepSum(Cparticle &p,double shepSum) {
+         p.shepSum = shepSum;
+      }
+      static void sumShepSum(Cparticle &p,double shepSum) {
+         p.shepSum += shepSum;
+      }
       static double readPorosity(Cparticle &p) {
          return p.porosity;
       }
@@ -56,6 +77,9 @@ class CsphIncompress {
       }
       static void writePorosity(Cparticle &p,double porosity) {
          p.porosity = porosity;
+      }
+      static void write_dPorositydt(Cparticle &p,double dporositydt) {
+         p.dporositydt = dporositydt;
       }
       static void sumPorosity(Cparticle &p,double porosity) {
          p.porosity += porosity;
@@ -667,17 +691,7 @@ class CsphIncompress {
 #endif
          //p.h = HFAC*pow(p.mass/p.dens,1.0/NDIM);
 #ifndef CONST_H
-#ifdef SLK
          p.h = HFAC*pow(p.mass/p.dens,1.0/NDIM);
-         //p.h *= pow(pin*p.mass/(p.dens*massin),1.0/NDIM);
-         //p.h *= pow(pin/p.dens,1.0/NDIM);
-#else
-         p.h *= pow(pin/p.dens,1.0/NDIM);
-#endif
-#else
-#ifdef LIQ_DEM
-         p.h = H*pow(1.0/p.porosity,1.0/NDIM);
-#endif
 #endif
          //p.u += dt*p.dudt;
          //p.h += dt*p.dhdt;
@@ -690,12 +704,12 @@ class CsphIncompress {
 #ifdef CHECK_FOR_NAN
          vect oldv = p.v;
 #endif
-         if ((p.iam == sph)||(p.iam==dem)) {
+         if ((p.iam == sph)||(p.iam==dem)||(p.iam==immersedDem)) {
             p.v = p.v0 + dt*p.f;
             p.vhat = p.vhat0 + dt*p.f;
             if (g.time < DAMPTIME) {
-               p.v *= 0.998;
-               p.vhat *= 0.998;
+               p.v *= 0.98;
+               p.vhat *= 0.98;
             }
 #ifdef FIXED_DEM
             if (p.iam==dem) {
@@ -805,7 +819,12 @@ class CsphIncompress {
          const double dddtInc = pb.mass*vdr;
 #endif
 
+         
+#ifdef LIQ_DEM_DDDT_VER2
+         pa.dddt += (pa.porosity/pb.porosity)*(dddtInc + pb.mass*W(r/pa.h,pa.h)*(pa.dporositydt/pa.porosity - pb.dporositydt/pb.porosity));
+#else
          pa.dddt += dddtInc;
+#endif
          //cout <<"pa.dddt = "<<dddtInc<<"pb.mass = "<<pb.mass<<" vdr "<<vdr<<" q = "<<q<<"hav = "<<hav<<"Fa = "<<Fa<<" pa.r = "<<pa.r<<" pb.r "<<pb.r<<endl;
 
 #ifdef DENS_DIFFUSE
@@ -829,9 +848,10 @@ class CsphIncompress {
 //void CsphIncompress:init_particles(Cparticle &p) {
 //}
    
-#ifdef VAR_H_CORRECTION
+#ifdef LIQ_DEM
       static void correctDddt(Cparticle &p,CglobalVars &g) {
-         p.dddt /= p.omega;
+         p.dddt -= p.dens*dot(p.vhat,p.gradPorosity);
+         //p.dddt *= 1.0/p.porosity;
       }
 #endif
 
@@ -843,7 +863,7 @@ class CsphIncompress {
 #ifdef LIQ_DEM_DENS_NORMAL
          p.press = PRB*(pow(p.dens/REFD,7) - 1.0);
 #else
-         p.press = PRB*p.porosity*(pow(p.dens/(REFD*p.porosity),GAMMA) - 1.0);
+         p.press = PRB*(pow(p.dens/(REFD*p.porosity),GAMMA) - 1.0);
 #endif
          //p.press = PRB*(pow(p.dens/REFD,7) - 1.0);
 #else
@@ -856,6 +876,15 @@ class CsphIncompress {
          //p.press = PRB*(pow(p.dens/REFD,7) - 0.99);
          //p.press = pow(SPSOUND,2)*p.dens;
          p.pdr2 = p.press/(p.dens*p.dens);
+#ifdef LIQ_DEM
+#ifdef LIQ_DEM_SEPARATE_DRAGS
+         p.pdr2 *= p.porosity;
+#else
+#ifdef LIQ_DEM_TEST
+         p.pdr2 *= p.porosity;
+#endif
+#endif
+#endif
 #ifdef LIQ_DEM_DENS_NORMAL
          p.pdr2 /= p.porosity*p.porosity;
 #endif
@@ -905,13 +934,20 @@ class CsphIncompress {
 #endif
 #endif
 
+#ifdef SLIP_BOUNDARIES
+            if (!ifBoundary(pb)) calcViscForce(pa,pb,g,0.5*(gradWa+gradWb),dv,r);
+#else
             calcViscForce(pa,pb,g,0.5*(gradWa+gradWb),dv,r);
+#endif
+               
 
          }
         
 #ifdef NO_ANTICLUMPING
          double kdwPowNeps = 0.0;
 #else
+         const double hav = 0.5*(pa.h+pb.h);
+         const double q = r/hav;
          const double kdw = K(q,hav)/K(1.0/HFAC,1.0);
          const double kdwPowNeps = pow(kdw,NEPS);
 #endif

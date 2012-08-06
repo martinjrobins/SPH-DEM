@@ -53,7 +53,6 @@ int main(int argc, char *argv[]) {
          p.v[2] += gsl_ran_gaussian(rng,VREF/20);
          p.vhat = p.v;
          p.iam = sph;
-         p.alpha = ALPHA;
          ps.push_back(p);
       }
    }
@@ -88,18 +87,20 @@ int main(int argc, char *argv[]) {
    cout << "Calculating Output stuff.."<<endl;
    //sph.calcOutputVars();
    //customOutput.calcOutput(0,&customSim,&ioFile);
+
    cout << "Writing Restart data to file..."<<endl;
    int nProc = product(split);
    for (int i=0;i<nProc;i++) {
       globals.mpiRank = i;
+      for (int j=0;j<NDIM*2;j++)
+         globals.procDomain[j] = vprocDomain[i][j];
+      globals.procNeighbrs = vprocNeighbrs[i];
       ioFile.setFilename(filename.c_str(),&globals);
       ioFile.writeGlobals(0,&globals);
       ioFile.writeRestart(0,vps[i],&globals);
+      ioFile.writeDomain(0,&globals);
       globals.mpiRank = 0;
    }
-   cout << "Writing Global data to file..."<<endl;
-   //ioFile.writeGlobals(0,&globals);
-   ioFile.writeDomain(0,vprocDomain,vprocNeighbrs);
 
 
    //Write restart file for John

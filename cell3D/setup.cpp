@@ -72,11 +72,12 @@ void myBoundaryCircle(vector<Cparticle> &ps,const vect &origin,const double radi
    Cparticle p;
    const double dRadius = radiusMax-radiusMin;
    const double NR = ceil(dRadius/(BFAC*PSEP));
-   const double RPSEP = dRadius/NR;
+   double RPSEP = dRadius/NR;
+   if (dRadius==0.0) RPSEP = 0;
    const vect n(1,0,0);
    for (int i=0;i<=NR;i++) {
       const double r = i*RPSEP+radiusMin;
-      double nc = ceil(2*PI*r/(BFAC*PSEP));
+      double nc = int(ceil(2.0*PI*r/(BFAC*PSEP)));
       if (nc == 0) nc++;
       const double TPSEP = 2.0*PI/nc;
       for (int j=0;j<nc;j++) {
@@ -107,7 +108,6 @@ void myBoundaryCircle(vector<Cparticle> &ps,const vect &origin,const double radi
             p.norm1 = 0,0,1;
             p.norm2 = 0,0,0;
          }
-         p.dist = 0;
          ps.push_back(p);
       }
    }
@@ -167,9 +167,9 @@ int main(int argc, char *argv[]) {
    double tsv = Nsph::viscDiffusionCondition(H,VISCOSITY);
    double tdem = Nsph::demCondition();
 #ifdef LUBRICATION
-   cout <<"coeff of restitution = "<<exp(-tdem*0.5*LUB_GAMMA/DEM_MIN_REDUCED_MASS)<<endl;
+   cout <<"coeff of restitution = "<<exp(-tdem*50*LUB_GAMMA/(2.0*DEM_MIN_REDUCED_MASS))<<endl;
 #else
-   cout <<"coeff of restitution = "<<exp(-tdem*0.5*DEM_GAMMA/DEM_MIN_REDUCED_MASS)<<endl;
+   cout <<"coeff of restitution = "<<exp(-tdem*50*DEM_GAMMA/(2.0*DEM_MIN_REDUCED_MASS))<<endl;
 #endif
    double liqtdem = Nsph::liqDemCondition();
    cout <<"dem ts = "<<tdem<<endl;
@@ -178,29 +178,13 @@ int main(int argc, char *argv[]) {
 
    cout <<"reduced mass = "<<DEM_MIN_REDUCED_MASS<<endl;
 cout <<" tdem = "<< (1.0/50.0)*PI*sqrt(DEM_MIN_REDUCED_MASS)/sqrt(DEM_K-pow(0.5*DEM_GAMMA,2)/DEM_MIN_REDUCED_MASS) << endl;
+   cout <<"particle reynolds number = "<<2.0*DEM_RADIUS*INFLOW_VEL/VISCOSITY<<endl;
+
    vect normal = 0.0;
    normal[2] = 1.0;
-   Nmisc::boundaryCircle(ps,CYLINDER_ORIGIN,INLET_RADIUS,CYLINDER_RADIUS,normal);
    vect newOrigin = CYLINDER_ORIGIN;
-   const double newHeight = CYLINDER_HEIGHT - BFAC*PSEP;
-   newOrigin[2] += BFAC*PSEP;
-   cout <<"adding cylinder at origin"<<newOrigin<<endl;
-   Nmisc::boundaryCylinderNoTopBottom(ps,newOrigin,CYLINDER_RADIUS,newHeight);
-   newOrigin[2] = CYLINDER_ORIGIN[2]-INLET_HEIGHT;
-   cout <<"adding cylinder at origin"<<newOrigin<<endl;
-   Nmisc::boundaryCylinderNoTopBottom(ps,newOrigin,INLET_RADIUS,INLET_HEIGHT);
-   newOrigin[2] = CYLINDER_ORIGIN[2]+CYLINDER_HEIGHT;
-   normal[2] = -1.0;
-   cout <<"adding cylinder at origin"<<newOrigin<<endl;
-   Nmisc::boundaryCircle(ps,newOrigin,INLET_RADIUS,CYLINDER_RADIUS,normal);
-   newOrigin[2] += PSEP;
-   cout <<"adding cylinder at origin"<<newOrigin<<endl;
-   Nmisc::boundaryCylinderNoTopBottom(ps,newOrigin,INLET_RADIUS,INLET_HEIGHT);
-   //demPorousCylinder(ps,CYLINDER_ORIGIN,CYLINDER_RADIUS,DEM_DISK_HEIGHT,DEM_DISK_POROSITY);
-   newOrigin[2] = CYLINDER_ORIGIN[2]+CYLINDER_HEIGHT-DEM_DISK_HEIGHT;
-   //demPorousCylinder(ps,newOrigin,CYLINDER_RADIUS,DEM_DISK_HEIGHT,0.5);
-
-
+   Nmisc::boundaryCircle(ps,CYLINDER_ORIGIN,INLET_RADIUS,CYLINDER_RADIUS,normal);
+   
    CglobalVars globals;
    globals.procNeighbrs = -1;
    for (int j=0;j<NDIM;j++) {
@@ -213,35 +197,70 @@ cout <<" tdem = "<< (1.0/50.0)*PI*sqrt(DEM_MIN_REDUCED_MASS)/sqrt(DEM_K-pow(0.5*
    ps.reserve(MAX_NUM_PARTICLES_PER_CPU);
    cout <<"creating new data structure"<<endl;
    CdataLL *data = new CdataLL(ps,globals,true);
+   
 #ifdef LIQ_DEM
    cout <<"adding dem particles"<<endl;
    
    cout <<"going to add "<<NDEM<<" dem particles at random locations...."<<endl;
-   newOrigin[2] = CYLINDER_ORIGIN[2]+DEM_DISK_HEIGHT+2.0*DEM_RADIUS;
+   newOrigin[2] = CYLINDER_ORIGIN[2]+1.0*DEM_RADIUS;
    cout <<"adding cylinder at origin"<<newOrigin<<endl;
-   Nmisc::addRandomDEMparticlesCyl(data,newOrigin,CYLINDER_RADIUS-2.0*DEM_RADIUS,CYLINDER_HEIGHT-4.0*DEM_RADIUS-2*DEM_DISK_HEIGHT,NDEM);
+   Nmisc::addRandomDEMparticlesCyl(data,newOrigin,CYLINDER_RADIUS-1.0*DEM_RADIUS,CYLINDER_HEIGHT-2.0*DEM_RADIUS,NDEM);
+   for (particleContainer::iterator p = ps.begin();p!=ps.end();p++) {
+      if (p->iam == dem) {
+         p->mass = INIT_DEM_MASS;
+         p->dens = INIT_DEM_DENS;
+      }
+   }
 #endif
    //newOrigin = CYLINDER_ORIGIN;
    //origin[2] += 1.6*PSEP;
    //Nmisc::sphCylinder(ps,origin);
+   
+   
+   newOrigin = CYLINDER_ORIGIN;
+   const double newHeight = CYLINDER_HEIGHT*(1+TOP_BUFFER) - BFAC*PSEP;
+   newOrigin[2] += BFAC*PSEP;
+   cout <<"adding cylinder at origin"<<newOrigin<<endl;
+   Nmisc::boundaryCylinderNoTopBottom(ps,newOrigin,CYLINDER_RADIUS,newHeight);
+   newOrigin[2] = CYLINDER_ORIGIN[2]-INLET_HEIGHT;
+   cout <<"adding cylinder at origin"<<newOrigin<<endl;
+   Nmisc::boundaryCylinderNoTopBottom(ps,newOrigin,INLET_RADIUS,INLET_HEIGHT);
+   newOrigin[2] = CYLINDER_ORIGIN[2]+CYLINDER_HEIGHT*(1+TOP_BUFFER);
+   normal[2] = -1.0;
+   cout <<"adding cylinder at origin"<<newOrigin<<endl;
+   Nmisc::boundaryCircle(ps,newOrigin,INLET_RADIUS,CYLINDER_RADIUS,normal);
+   newOrigin[2] += PSEP;
+   cout <<"adding cylinder at origin"<<newOrigin<<endl;
+   Nmisc::boundaryCylinderNoTopBottom(ps,newOrigin,INLET_RADIUS,INLET_HEIGHT);
+   //demPorousCylinder(ps,CYLINDER_ORIGIN,CYLINDER_RADIUS,DEM_DISK_HEIGHT,DEM_DISK_POROSITY);
+   //newOrigin[2] = CYLINDER_ORIGIN[2]+CYLINDER_HEIGHT-DEM_DISK_HEIGHT;
+   //demPorousCylinder(ps,newOrigin,CYLINDER_RADIUS,DEM_DISK_HEIGHT,0.5);
+
+
 #ifdef WET_START
    const double totalDEMVol = NDEM*(4.0/3.0)*PI*pow(DEM_RADIUS,3);
    //const double newLiqDens = DENS;
    const double liqVol = PI*pow(CYLINDER_RADIUS,2)*CYLINDER_HEIGHT*0.90;
    const double newLiqDens = DENS*(liqVol-totalDEMVol)/(liqVol);
+   const double pmass = pow(PSEP,NDIM)*DENS;
+   const double newPSEP = pow(pmass/newLiqDens,1.0/NDIM);
+   const double newNX = (BMAX[0]-BMIN[0])/newPSEP;
+   const double newNY = newNX;
+   const double newNZ = CYLINDER_HEIGHT*(1+TOP_BUFFER)/newPSEP;
+   //const double newLiqDens = DENS;
    cout << "porosity = "<<1.0-totalDEMVol/(liqVol)<<endl;
    cout << "after adding dem particles, new liquid density is "<<newLiqDens<<endl; 
 
    cout <<"adding liquid particles"<<endl;
-   for (int i=0;i<2*NX+3;i++) {
+   for (int i=0;i<=newNX;i++) {
          cout << "\rParticle ("<<i<<","<<"0"<<"). Generation "<<((i+2)*(NY+4))/double((NX+4)*(NY+4))*100<<"\% complete"<<flush;
-      for (int j=0;j<2*NY+3;j++) {
-         for (int k=0;k<=NZ;k++) {
+      for (int j=0;j<=newNY;j++) {
+         for (int k=0;k<=newNZ;k++) {
             p.tag = ps.size()+1;
-            p.r = (i)*PSEP+BMIN[0],j*PSEP+BMIN[1],(k+1)*PSEP+CYLINDER_ORIGIN[2];
-            if ((p.r[2]<CYLINDER_ORIGIN[2])||(p.r[0]*p.r[0]+p.r[1]*p.r[1]>pow(CYLINDER_RADIUS-PSEP,2))) continue;
+            p.r = (i)*newPSEP+BMIN[0],j*newPSEP+BMIN[1],(k+1)*newPSEP+CYLINDER_ORIGIN[2];
+            if ((p.r[2]<CYLINDER_ORIGIN[2]+0.5*PSEP)||(p.r[2]>CYLINDER_ORIGIN[2]+CYLINDER_HEIGHT*(1+TOP_BUFFER)-0.5*PSEP)||(p.r[0]*p.r[0]+p.r[1]*p.r[1]>pow(CYLINDER_RADIUS-0.5*PSEP,2))) continue;
             p.dens = newLiqDens;
-            p.mass = pow(PSEP,NDIM)*newLiqDens;
+            p.mass = pmass;
             p.h = HFAC*pow(p.mass/p.dens,1.0/NDIM);
             p.v = 0.0;
             p.vhat = p.v;
@@ -255,10 +274,13 @@ cout <<" tdem = "<< (1.0/50.0)*PI*sqrt(DEM_MIN_REDUCED_MASS)/sqrt(DEM_K-pow(0.5*
       vect tmp = CYLINDER_ORIGIN;
       tmp[2] -= INLET_HEIGHT-k*PSEP;
       if (k<4) {
-         myBoundaryCircle(ps,tmp,0,int((INLET_RADIUS-1.5*PSEP)/PSEP)*PSEP,sphBoundary);
+         myBoundaryCircle(ps,tmp,0.5*(NIX%2)*PSEP,NIX*PSEP/2.0,sphBoundary);
       } else {
-         myBoundaryCircle(ps,tmp,0,int((INLET_RADIUS-1.5*PSEP)/PSEP)*PSEP,sph);
+         myBoundaryCircle(ps,tmp,0.5*(NIX%2)*PSEP,NIX*PSEP/2.0,sph);
       }
+
+      tmp[2] = CYLINDER_ORIGIN[2]+CYLINDER_HEIGHT*(1+TOP_BUFFER)+k*PSEP;
+      myBoundaryCircle(ps,tmp,0.5*(NIX%2)*PSEP,NIX*PSEP/2.0,sph);
    }
 
 #endif
@@ -283,7 +305,7 @@ cout <<" tdem = "<< (1.0/50.0)*PI*sqrt(DEM_MIN_REDUCED_MASS)/sqrt(DEM_K-pow(0.5*
    vector<Array<int,NDIM> > vprocNeighbrs(globals.mpiSize);
    vector<particleContainer > vps;
    vectInt split;
-   split = 1,1,1;
+   split = NCPU_X,NCPU_Y,NCPU_Z;
    particleContainer pps;
    for (int i=0;i<ps.size();i++) {
       pps.push_back(ps[i]);

@@ -13,6 +13,10 @@ inline void setupInflow(Cparticle &p,CglobalVars &g) {
 inline void setH(Cparticle &p,CglobalVars &g) {
    p.h = H;
 }
+inline void setDemMass(Cparticle &p,CglobalVars &g) {
+   p.mass = DEM_MASS;
+   p.dens = DEM_DENS;
+}
 #ifdef LIQ_DEM
 inline void addCustomBoundaries(Cparticle &p,CglobalVars &g) {
    const double overlap1 = CYLINDER_ORIGIN[2]+DEM_RADIUS-p.r[2];
@@ -24,6 +28,7 @@ inline void addCustomBoundaries(Cparticle &p,CglobalVars &g) {
    const double overlap_check = 0.0;
 #endif
    if (overlap1>overlap_check) {
+         
       const double overlap_dot = -p.vhat[2];
       vect normal = 0.0;
       normal[2] = 1.0;
@@ -45,12 +50,17 @@ inline void addCustomBoundaries(Cparticle &p,CglobalVars &g) {
    }
    p.f += p.fb;
 
+   if ((overlap1>4.0*DEM_RADIUS)||(overlap2>4.0*DEM_RADIUS)||(overlap3>4.0*DEM_RADIUS)) {
+      cerr << "dem particle outside wall. v = "<<p.v<<" r = "<<p.r<<" p.fdrag = "<<p.fdrag<<" porosity = "<<p.porosity<<endl;
+      p.tag = -111;
+   }
+
 }
 #endif
 
 inline void setupInflowTransition(Cparticle &p,CglobalVars &g) {
    const double scaledr = (p.r[2]-(CYLINDER_ORIGIN[2]-INLET_HEIGHT+3.0*PSEP))/(3.0*PSEP);
-   const double scaledr2 = (p.r[2]-(CYLINDER_ORIGIN[2]+CYLINDER_HEIGHT+INLET_HEIGHT))/(3.0*PSEP);
+   const double scaledr2 = (p.r[2]-(CYLINDER_ORIGIN[2]+CYLINDER_HEIGHT*(1+TOP_BUFFER)+INLET_HEIGHT))/(3.0*PSEP);
    if ((scaledr > 0.0) && (scaledr < 1.0)) {
       p.iam = sph;
       const vect inflowV(0,0,INFLOW_VEL);
@@ -81,7 +91,8 @@ void sphBoundaryCircle(CdataLL *data,const vect &origin,const double radiusMin,c
    Cparticle p;
    const double dRadius = radiusMax-radiusMin;
    const double NR = floor(dRadius/PSEP+0.5);
-   const double RPSEP = dRadius/NR;
+   double RPSEP = dRadius/NR;
+   if (dRadius==0.0) RPSEP = 0;
    //cout <<"creating inflow with radius = "<<dRadius<<" number of circles = "<<NR<<" separation between circles = "<<RPSEP<<endl;
    const vect n(1,0,0);
    for (int i=0;i<=NR;i++) {
@@ -96,13 +107,18 @@ void sphBoundaryCircle(CdataLL *data,const vect &origin,const double radiusMin,c
          newN[1] = n[0]*sin(theta)+n[1]*cos(theta);
          newN[2] = 0;
          p.r = r*newN + origin;
-         p.tag = data->globals.time;
+         p.tag = data->globals.time*10000.0;
          p.mass = pow(PSEP,NDIM)*DENS;
          p.dens = p.mass/pow(RPSEP,NDIM);
          p.h = H;
          p.v = 0,0,0;
          p.iam = sphBoundary;
-         data->insertNewParticle(p);
+	 bool isin = true;
+	 for (int k=0;k<NDIM;k++) {
+            isin = isin & p.r[k] >= data->globals.procDomain[k*2];
+            isin = isin & p.r[k] < data->globals.procDomain[k*2+1];
+         }
+         if (isin) data->insertNewParticle(p);
       }
    }
 }
@@ -116,7 +132,7 @@ void CcustomSim::afterEnd(double newTime) {
       if (start) {
          vect newOrigin = CYLINDER_ORIGIN;
          newOrigin[2] -= INLET_HEIGHT;
-         sphBoundaryCircle(data,newOrigin,0,int((INLET_RADIUS-0.9*PSEP)/PSEP)*PSEP);
+         sphBoundaryCircle(data,newOrigin,0.5*(NIX%2)*PSEP,NIX*PSEP/2.0);
       }
       start = true;
       data->traverse<setupInflow,Nsph::ifSphBoundary>();
@@ -125,10 +141,10 @@ void CcustomSim::afterEnd(double newTime) {
 }
 
 void CcustomSim::beforeMiddle(double newTime) {
-   if (~doOnce) {
-      data->traverse<setH,Nsph::ifDem>();
-      doOnce = true;
-   }
+   //if (~doOnce) {
+   //   data->traverse<setH,Nsph::ifDem>();
+   //   doOnce = true;
+   //}
    data->globals.maxdt = 0.5*PSEP/INFLOW_VEL;
    data->traverse<addGravity,Nsph::ifSph>();
    double dt = newTime-time;
@@ -136,7 +152,7 @@ void CcustomSim::beforeMiddle(double newTime) {
       if (start) {
          vect newOrigin = CYLINDER_ORIGIN;
          newOrigin[2] -= INLET_HEIGHT;
-         sphBoundaryCircle(data,newOrigin,0,int((INLET_RADIUS-0.9*PSEP)/PSEP)*PSEP);
+         sphBoundaryCircle(data,newOrigin,0.5*(NIX%2)*PSEP,NIX*PSEP/2.0);
       }
       start = true;
       data->traverse<setupInflow,Nsph::ifSphBoundary>();
@@ -151,11 +167,15 @@ void CcustomSim::beforeEnd(double newTime) {
 #endif
    data->traverse<setupInflowTransition,Nsph::ifSphOrSphBoundary>();
    double dt = newTime-time;
+   if ((newTime > TIME_CHANGE_DEM_MASS)&&(~doOnce2)) {
+      data->traverse<setDemMass,Nsph::ifDem>();
+   }
+    
    if ((newTime>TIME_START_INLET)&&(floor(time/(PSEP/INFLOW_VEL))<floor(newTime/(PSEP/INFLOW_VEL)))) {
       if (start) {
          vect newOrigin = CYLINDER_ORIGIN;
          newOrigin[2] -= INLET_HEIGHT;
-         sphBoundaryCircle(data,newOrigin,0,int((INLET_RADIUS-0.9*PSEP)/PSEP)*PSEP);
+         sphBoundaryCircle(data,newOrigin,0.5*(NIX%2)*PSEP,NIX*PSEP/2.0);
       }
       start = true;
       data->traverse<setupInflow,Nsph::ifSphBoundary>();

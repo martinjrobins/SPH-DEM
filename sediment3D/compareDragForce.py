@@ -1,14 +1,15 @@
 from numpy import *
 from pylab import *
-epsilon = arange(0.37,1,0.001)
-#dens = 1000.0
-#visc = 8.9e-4/dens
-#Rep = 0.85
+#epsilon = arange(0.37,1,0.001)
+epsilon = arange(0.8,0.95,0.05)
+dens = 1000.0
+visc = 8.9e-4/dens
+Rep = 0.85
 #dens = 1.1839
 #visc = 18.6e-6/dens
 #Rep = 3.19 
-dens = 1150.0
-visc = 8.9e-3/dens
+#dens = 1150.0
+#visc = 8.9e-3/dens
 Rep = 0.011
 dem_dens = 2.5*dens
 dem_d = 100.0e-6
@@ -28,6 +29,7 @@ krRep = dv*dem_d/visc
 print krRep
 fKhanRichardson = pi*(dem_d/2.0)**2*dens*dv**2*(1.84*krRep**(-0.31)+0.293*krRep**0.06)**3.45*epsilon/epsilon
 
+print fDiFelice
 plot(epsilon,fStokes,label='Stokes')
 plot(epsilon,fDiFelice,label='DiFelice')
 plot(epsilon,fKhanRichardson,label='Khan and Richardson')
@@ -36,6 +38,7 @@ xlabel("porosity")
 ylabel("drag force")
 yscale('log')
 legend(loc=4)
+
 
 
 epsilon = 1.0 

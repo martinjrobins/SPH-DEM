@@ -13,6 +13,8 @@
 #include <gsl/gsl_multifit.h>
 #include <gsl/gsl_linalg.h>
 #include <gsl/gsl_rng.h>
+#include <gsl/gsl_math.h>
+#include <gsl/gsl_eigen.h>
 #include <blitz/array.h>
 #include <complex>
 
@@ -20,6 +22,7 @@
 namespace Sgi = ::__gnu_cxx;       // GCC 3.1 and later
 
 //using namespace std;
+ 
 
 typedef complex<double> myComplex;
 namespace Nmisc {
@@ -96,5 +99,137 @@ namespace Nmisc {
    void addRandomDEMparticles(CdataLL *data,const double minRange[NDIM],const double maxRange[NDIM],const double porosity);
    void addRandomDEMparticlesCyl(CdataLL *data,const vect origin,const double radius,const double height,int n);
 }
+
+
+#ifdef DEFORMATION_MATRIX
+#include "sph.h"
+namespace Nmisc {
+inline void calcDeformationMatrix(Cparticle &p, vector<Cparticle *> &neighbrs,CglobalVars &g,CdataLL &d2) {
+   const int n = neighbrs.size();
+   if (n<NDIM) {
+      for (int j=0;j<NDIM;j++) {
+         for (int i=0;i<n;i++) {
+            p.defMat[i*NDIM+j] = 0;
+         }
+      }
+      return;
+   }
+   gsl_matrix *X = gsl_matrix_alloc(n,NDIM);
+   gsl_vector *y = gsl_vector_alloc(n);
+
+   gsl_vector *c = gsl_vector_alloc(NDIM);
+   gsl_matrix *cov = gsl_matrix_alloc(NDIM,NDIM);
+            
+   gsl_multifit_linear_workspace *work = gsl_multifit_linear_alloc(n,NDIM);
+
+   vector<vect> dx2(n);
+   //double shepSum = 0;
+   for (int i=0;i<n;i++) {
+      Cparticle *pn = neighbrs[i];
+      vect dx = pn->r-p.r;
+      /*
+      const double r = len(dx);
+      const double dvol = pn->mass/pn->dens;
+      const double q = r/pn->h;
+      const double Wab = Nsph::W(q,pn->h);
+      const double dvWab = dvol*Wab;
+      shepSum += dvWab;
+      */
+      Cparticle *pn2 = d2.getParticleFromTag(pn->tag);
+      if (pn2==NULL) continue;
+      for (int j=0;j<NDIM;j++) {
+         if (PERIODIC[j]) {
+            if (abs(pn2->r[j]-p.r[j]+RMAX[j]-RMIN[j])<abs(pn2->r[j]-p.r[j])) {
+               (dx2[i])[j] = pn2->r[j]-p.r[j]+RMAX[j]-RMIN[j];
+            } else if (abs(pn2->r[j]-p.r[j]-RMAX[j]+RMIN[j])<abs(pn2->r[j]-p.r[j])) {
+               (dx2[i])[j] = pn2->r[j]-p.r[j]-RMAX[j]+RMIN[j];
+            } else {
+               (dx2[i])[j] = pn2->r[j]-p.r[j];
+            }
+         } else {
+            (dx2[i])[j] = pn2->r[j]-p.r[j];
+         }
+         gsl_matrix_set(X,i,j,dx[j]);
+      }
+   }
+   
+
+
+
+   for (int j=0;j<NDIM;j++) {
+      for (int i=0;i<n;i++) {
+         gsl_vector_set(y,i,(dx2[i])[j]);
+      }
+            
+      double chisq;
+      gsl_multifit_linear(X,y,c,cov,&chisq,work);
+
+      for (int i=0;i<NDIM;i++) {
+         p.defMat[i*NDIM+j] = gsl_vector_get(c,i);
+      }
+   }
+   gsl_multifit_linear_free(work);
+   gsl_vector_free(c);
+   gsl_vector_free(y);
+   gsl_matrix_free(X);
+   gsl_matrix_free(cov);
+}
+
+
+
+inline void calcRightCauchyGreenTensor(Cparticle &p, vector<Cparticle *> &neighbrs,CglobalVars &g,CdataLL &d2) {
+
+   calcDeformationMatrix(p,neighbrs,g,d2);
+
+   // multiply transverse of coeff by itself to find Right Cauchy-Green
+   // Deformation Tensor
+   for (int i=0;i<NDIM;i++) {
+      for (int j=0;j<NDIM;j++) {
+         int index = i*NDIM+j;
+         p.RCGMat[index] = 0;
+         for (int k=0;k<NDIM;k++) {
+            p.RCGMat[index] += p.defMat[k*NDIM+i]*p.defMat[k*NDIM+j];
+         }
+      }
+   }
+   double data[NDIM*NDIM];
+   for (int i=0;i<NDIM;i++) {
+      for (int j=0;j<NDIM;j++) {
+         data[i*NDIM+j] = p.defMat[i*NDIM+j];
+      }
+   }
+
+   //calculate eigenvalues of resultant matrix
+   gsl_matrix_view m = gsl_matrix_view_array (data, NDIM, NDIM);
+   gsl_vector *eval = gsl_vector_alloc (NDIM);
+   gsl_matrix *evec = gsl_matrix_alloc (NDIM, NDIM);
+   gsl_eigen_symmv_workspace *w = gsl_eigen_symmv_alloc (NDIM);
+   gsl_eigen_symmv(&m.matrix, eval, evec, w);
+   gsl_eigen_symmv_free(w);
+   gsl_eigen_symmv_sort(eval, evec, GSL_EIGEN_SORT_ABS_ASC);
+
+
+   p.eval1 = gsl_vector_get(eval, NDIM-1);
+   p.eval2 = gsl_vector_get(eval, NDIM-2);
+   gsl_vector_view evec1 = gsl_matrix_column(evec,NDIM-1);
+   for (int i=0;i<NDIM;i++) {
+      p.evec1[i] = gsl_vector_get(&evec1.vector,i);
+   }
+
+   gsl_vector_free(eval);
+   gsl_matrix_free(evec);
+
+}
+
+inline void calcParticleLyap(Cparticle &p, vector<Cparticle *> &neighbrs,CglobalVars &g,CdataLL &d2) {
+   calcRightCauchyGreenTensor(p,neighbrs,g,d2);
+   double DLE = 1.0/(2.0*abs(d2.globals.time - g.time))*log(abs(p.eval1));
+   p.tmp = DLE;
+}
+
+}
+#endif
+
+
 
 #endif

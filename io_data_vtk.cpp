@@ -185,7 +185,7 @@ void Cio_data_vtk::readCSIRO(int timestep,particleContainer *outPs,CglobalVars *
    int n = dataset->GetNumberOfPoints();
    cout <<"dataset contains "<<n<<" points..."<<endl;
    vtkLongArray *tag= static_cast<vtkLongArray *> (dataset->GetPointData()->GetArray("ID"));
-   vtkDoubleArray *dens = static_cast<vtkDoubleArray *> (dataset->GetPointData()->GetArray("density"));
+   //vtkDoubleArray *dens = static_cast<vtkDoubleArray *> (dataset->GetPointData()->GetArray("density"));
    vtkDoubleArray *vx = static_cast<vtkDoubleArray *> (dataset->GetPointData()->GetArray("vx"));
    vtkDoubleArray *vy = static_cast<vtkDoubleArray *> (dataset->GetPointData()->GetArray("vy"));
    vtkDoubleArray *vz = static_cast<vtkDoubleArray *> (dataset->GetPointData()->GetArray("vz"));
@@ -202,14 +202,15 @@ void Cio_data_vtk::readCSIRO(int timestep,particleContainer *outPs,CglobalVars *
          p->r[j]=r[j];
       }
       p->tag= tag->GetValue(i);
-      p->dens = dens->GetValue(i);
+      //p->dens = dens->GetValue(i);
+      p->dens = DENS;
       p->v[0]=vx->GetValue(i);
       p->v[1]=vy->GetValue(i);
       p->v[2]=vz->GetValue(i);
       p->vhat=p->v;
       p->iam = sph;
       p->mass = pow(PSEP,NDIM)*DENS;
-      p->h = HFAC*pow(p->mass/p->dens,1.0/NDIM);
+      p->h = HFAC*PSEP;
       p++;
    }
    
@@ -400,7 +401,7 @@ void Cio_data_vtk::writeRestart(int timestep,particleContainer &ps,CglobalVars *
 #endif
 }
 
-void Cio_data_vtk::writeOutput(int timestep,particleContainer &ps,CcustomSimBase &customSim,CglobalVars *globals) {
+void Cio_data_vtk::writeOutput(int timestep,particleContainer &ps,CglobalVars *globals) {
    int n = ps.size();
    vtkPoints *newPts = vtkPoints::New();
    vtkCellArray *newCells = vtkCellArray::New();
@@ -414,13 +415,26 @@ void Cio_data_vtk::writeOutput(int timestep,particleContainer &ps,CcustomSimBase
    vtkFloatArray *fdrag = vtkFloatArray::New();
    vtkFloatArray *shepSum = vtkFloatArray::New();
 #endif
+#ifdef HALLER_LCS
+   vtkFloatArray *eval1 = vtkFloatArray::New();
+   vtkFloatArray *eval2 = vtkFloatArray::New();
+   vtkFloatArray *evec1 = vtkFloatArray::New();
+   vtkFloatArray *Z_surface = vtkFloatArray::New();
+#endif
+#ifdef VAR_H_CORRECTION2
+   vtkFloatArray *gradH = vtkFloatArray::New();
+#endif
+
 
 #ifdef SLK
    vtkFloatArray *dr= vtkFloatArray::New();
    vtkFloatArray *mass= vtkFloatArray::New();
 #endif
    
-   
+#ifdef TEST_VISC
+   vtkFloatArray *eViscF= vtkFloatArray::New();
+#endif
+
    vtkFloatArray *ff = vtkFloatArray::New();
    vtkFloatArray *fb = vtkFloatArray::New();
    vtkFloatArray *fp = vtkFloatArray::New();
@@ -443,10 +457,21 @@ void Cio_data_vtk::writeOutput(int timestep,particleContainer &ps,CcustomSimBase
    fdrag->SetNumberOfComponents(3);
    fdrag->SetNumberOfTuples(n);
 #endif
+#ifdef HALLER_LCS
+   eval1->SetNumberOfValues(n);
+   eval2->SetNumberOfValues(n);
+   evec1->SetNumberOfComponents(3);
+   evec1->SetNumberOfTuples(n);
+   Z_surface->SetNumberOfValues(n);
+#endif
 #ifdef SLK
    dr->SetNumberOfComponents(3);
    dr->SetNumberOfTuples(n);
    mass->SetNumberOfValues(n);
+#endif
+#ifdef VAR_H_CORRECTION2
+   gradH->SetNumberOfComponents(3);
+   gradH->SetNumberOfTuples(n);
 #endif
    v->SetNumberOfComponents(3);
    v->SetNumberOfTuples(n);
@@ -455,6 +480,10 @@ void Cio_data_vtk::writeOutput(int timestep,particleContainer &ps,CcustomSimBase
    vort->SetNumberOfComponents(3);
    vort->SetNumberOfTuples(n);
    h->SetNumberOfValues(n);
+#ifdef TEST_VISC
+   eViscF->SetNumberOfValues(n);
+#endif
+
    ff->SetNumberOfComponents(3);
    ff->SetNumberOfTuples(n);
    fb->SetNumberOfComponents(3);
@@ -472,6 +501,16 @@ void Cio_data_vtk::writeOutput(int timestep,particleContainer &ps,CcustomSimBase
    shepSum->SetName("shepSum");
    fdrag->SetName("fdrag");
 #endif
+#ifdef HALLER_LCS
+   eval1->SetName("eval1");
+   eval2->SetName("eval2");
+   evec1->SetName("evec1");
+   Z_surface->SetName("Z_surface");
+#endif
+
+#ifdef VAR_H_CORRECTION2
+   gradH->SetName("gradH");
+#endif
 #ifdef SLK
    dr->SetName("dr");
    mass->SetName("mass");
@@ -483,6 +522,10 @@ void Cio_data_vtk::writeOutput(int timestep,particleContainer &ps,CcustomSimBase
    h->SetName("h");
    tag->SetName("tag");
    iam->SetName("iam");
+
+#ifdef TEST_VISC
+   eViscF->SetName("eViscF");
+#endif
    ff->SetName("ff");
    fb->SetName("fb");
    fv->SetName("fv");
@@ -492,9 +535,13 @@ void Cio_data_vtk::writeOutput(int timestep,particleContainer &ps,CcustomSimBase
    for (particleContainer::iterator p = ps.begin();p!=ps.end();p++) {
       newCells->InsertNextCell(1);
       newCells->InsertCellPoint(i);
-      vect newr = customSim.rFilter(p->r);
-      vect newv = customSim.vFilter(p->v,p->r);
-      vect newvhat = customSim.vFilter(p->vhat,p->r);
+#ifdef TEST_VISC
+      vect newr = p->origPos;
+#else
+      vect newr = p->r;
+#endif
+      vect newv = p->v;
+      vect newvhat = p->vhat;
 #if NDIM==1
       newPts->SetPoint(i,newr[0],0,0);
       v->SetTuple3(i,newv[0],0,0); 
@@ -517,6 +564,9 @@ void Cio_data_vtk::writeOutput(int timestep,particleContainer &ps,CcustomSimBase
       fb->SetTuple3(i,p->fb[0],p->fb[1],0); 
       fv->SetTuple3(i,p->fv[0],p->fv[1],0); 
       fp->SetTuple3(i,p->fp[0],p->fp[1],0); 
+#ifdef VAR_H_CORRECTION2
+      gradH->SetTuple3(i,p->gradH[0],p->gradH[1],0);
+#endif
 #elif NDIM==3
       newPts->SetPoint(i,newr[0],newr[1],newr[2]);
       v->SetTuple3(i,newv[0],newv[1],newv[2]); 
@@ -526,6 +576,9 @@ void Cio_data_vtk::writeOutput(int timestep,particleContainer &ps,CcustomSimBase
       fb->SetTuple3(i,p->fb[0],p->fb[1],p->fb[2]); 
       fv->SetTuple3(i,p->fv[0],p->fv[1],p->fv[2]); 
       fp->SetTuple3(i,p->fp[0],p->fp[1],p->fp[2]); 
+#ifdef VAR_H_CORRECTION2
+      gradH->SetTuple3(i,p->gradH[0],p->gradH[1],p->gradH[2]);
+#endif
 #endif
 #ifdef SLK
       mass->SetValue(i,p->mass);
@@ -540,6 +593,19 @@ void Cio_data_vtk::writeOutput(int timestep,particleContainer &ps,CcustomSimBase
       fdrag->SetTuple3(i,p->fdrag[0],p->fdrag[1],p->fdrag[2]);
 #endif
 
+#endif
+#ifdef HALLER_LCS
+      eval1->SetValue(i,p->eval1);
+      eval2->SetValue(i,p->eval2);
+#if NDIM==2
+      evec1->SetTuple3(i,p->evec1[0],p->evec1[1],0); 
+#elif NDIM==3
+      evec1->SetTuple3(i,p->evec1[0],p->evec1[1],p->evec1[2]); 
+#endif
+      Z_surface->SetValue(i,p->Z_surface);
+#endif
+#ifdef TEST_VISC
+      eViscF->SetValue(i,p->eViscF);
 #endif
       dens->SetValue(i,p->dens);
       press->SetValue(i,p->press);
@@ -564,12 +630,24 @@ void Cio_data_vtk::writeOutput(int timestep,particleContainer &ps,CcustomSimBase
    dataset->GetPointData()->AddArray(fdrag);
    dataset->GetPointData()->AddArray(shepSum);
 #endif
+#ifdef HALLER_LCS
+   dataset->GetPointData()->AddArray(eval1);
+   dataset->GetPointData()->AddArray(eval2);
+   dataset->GetPointData()->AddArray(evec1);
+   dataset->GetPointData()->AddArray(Z_surface);
+#endif
+#ifdef VAR_H_CORRECTION2
+   dataset->GetPointData()->AddArray(gradH);
+#endif
 #ifdef SLK
    dataset->GetPointData()->AddArray(dr);
    dataset->GetPointData()->AddArray(mass);
 #endif
    dataset->GetPointData()->AddArray(vort);
    dataset->GetPointData()->AddArray(h);
+#ifdef TEST_VISC
+   dataset->GetPointData()->AddArray(eViscF);
+#endif
    dataset->GetPointData()->AddArray(ff);
    dataset->GetPointData()->AddArray(fb);
    dataset->GetPointData()->AddArray(fv);
@@ -608,10 +686,22 @@ void Cio_data_vtk::writeOutput(int timestep,particleContainer &ps,CcustomSimBase
    shepSum->Delete();
    fdrag->Delete();
 #endif
+#ifdef HALLER_LCS
+   eval1->Delete();
+   eval2->Delete();
+   evec1->Delete();
+   Z_surface->Delete();
+#endif
+#ifdef VAR_H_CORRECTION2
+   gradH->Delete();
+#endif
    v->Delete();
    vhat->Delete();
    vort->Delete();
    h->Delete();
+#ifdef TEST_VISC
+   eViscF->Delete();
+#endif
    ff->Delete();
    fb->Delete();
    fv->Delete();
@@ -676,6 +766,7 @@ void Cio_data_vtk::writeAuxNoData(int timestep,particleContainer &ps,const char 
 void Cio_data_vtk::writeAux(int timestep,particleContainer &ps,vector<double> theData,const char *name,CglobalVars *globals) {
    int n = ps.size();
    vtkPoints *newPts = vtkPoints::New();;
+   vtkCellArray *newCells = vtkCellArray::New();
    vtkFloatArray *data = vtkFloatArray::New();
    vtkIdTypeArray *tag= vtkIdTypeArray::New();
 
@@ -689,6 +780,8 @@ void Cio_data_vtk::writeAux(int timestep,particleContainer &ps,vector<double> th
 
    int i = 0;
    for (particleContainer::iterator p = ps.begin();p!=ps.end();p++) {
+      newCells->InsertNextCell(1);
+      newCells->InsertCellPoint(i);
       vect newr = p->r;
 #if NDIM==1
       newPts->SetPoint(i,newr[0],0,0);
@@ -704,16 +797,20 @@ void Cio_data_vtk::writeAux(int timestep,particleContainer &ps,vector<double> th
 
    vtkUnstructuredGrid *dataset = vtkUnstructuredGrid::New();
    dataset->SetPoints(newPts);
+   dataset->SetCells(1,newCells);
    dataset->GetPointData()->AddArray(data);
    dataset->GetPointData()->AddArray(tag);
+
    dataset->GetPointData()->SetActiveScalars(name);
-   //dataset->GetPointData()->SetActiveGlobalIds("tag");
+   dataset->GetPointData()->SetActiveGlobalIds("tag");
 
    //write data
    vtkXMLPUnstructuredGridWriter *writer = vtkXMLPUnstructuredGridWriter::New();
    writer->SetNumberOfPieces(globals->mpiSize);
    writer->SetStartPiece(globals->mpiRank);
    writer->SetEndPiece(globals->mpiRank);
+   writer->SetNumberOfTimeSteps(OUTSTEP);
+   writer->SetTimeStepRange(globals->outstep,globals->outstep);
    writer->SetInput(dataset);
    writer->SetDataModeToBinary();
    char strTimestep[20];
@@ -721,11 +818,14 @@ void Cio_data_vtk::writeAux(int timestep,particleContainer &ps,vector<double> th
    string outFilename = filename+name+strTimestep+".pvtu";
    writer->SetFileName(outFilename.c_str());
    if (globals->mpiRank==0) cout << "\tWriting "<<n<<" particles to file: "<<outFilename<<endl;
-   //writer->SetTimeStep(timestep);
-   writer->Write();
+   writer->SetTimeStep(timestep);
+   writer->WriteNextTime(globals->time);
+
+
 
 
    writer->Delete();
+   newCells->Delete();
    dataset->Delete();
    newPts->Delete();
    data->Delete();

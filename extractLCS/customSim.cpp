@@ -1,4 +1,4 @@
-#include "customSim.h"
+include "customSim.h"
 #include "sph.h"
 #include "dataLL.impl.h"
 
@@ -27,11 +27,7 @@ inline void freezeParticles(Cparticle &p,CglobalVars &g) {
 inline void sumDragForces(Cparticle &p,CglobalVars &g) {
    if (p.iam==sph) {
       for (int i=0;i<3;i++) {
-#ifdef LIQ_DEM_SEPARATE_DRAGS
-         g.custom[i] += p.mass*p.fdrag[i]-p.mass*(1.0-p.porosity)*(p.fp[i]+p.fb[i]+p.fv[i])/p.porosity;
-#else
          g.custom[i] += p.mass*p.fdrag[i];
-#endif
       }
    } else if (p.iam==dem) {
       for (int i=3;i<6;i++) {

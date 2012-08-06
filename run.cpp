@@ -130,7 +130,7 @@ int main(int argc, char *argv[]) {
 
          sph.calcOutputVars();
          customOutput.calcOutput(outstep,&customSim,&io_data);
-         io_data.writeOutput(outstep,ps,customSim,&globals);
+         io_data.writeOutput(outstep,ps,&globals);
          io_data.writeGlobals(outstep,&globals);
 
          if (outstep%RESTART_EVERY_N_STEPS==0) {

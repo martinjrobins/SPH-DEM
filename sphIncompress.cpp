@@ -1,7 +1,7 @@
 #include "sphIncompress.h"
 
 void CsphIncompress::start() {
-   data->traverse<driftRAndKick,ifSphOrSphBoundary>();
+   data->traverse<driftRAndKick,ifSphOrSphBoundaryOrImmersedDem>();
 #ifdef LIQ_DEM
    data->traverse<driftR,ifDem>();
 #endif
@@ -13,28 +13,28 @@ void CsphIncompress::start() {
    if (data->globals.slkIndex0>=SLK_NUM_TIMESTEPS) data->globals.slkIndex0 = 0;
    if (data->globals.slkIndexLast>=SLK_NUM_TIMESTEPS) data->globals.slkIndexLast = 0;
 #endif
-   data->traverse<driftRest,ifSphOrSphBoundary>();
+   data->traverse<driftRest,ifSphOrSphBoundaryOrImmersedDem>();
    data->globals.time += data->globals.dt/2;
 
    //if ((data->globals.sphStep < DAMP_STEPS)||(data->globals.sphStep%REINIT_DENS_EVERY_N_STEPS==0)) {
-   if ((data->globals.sphStep%REINIT_DENS_EVERY_N_STEPS==0)) {
+   if ((data->globals.sphStep%REINIT_DENS_EVERY_N_STEPS==0)||(data->globals.sphStep == REINIT_DENS_AT_N_STEPS)) {
       data->reset();
 #ifdef MY_VAR_RES
-      data->neighboursGroup<calcGradVLeastSquares,ifSphOrSphBoundary>();
+      data->neighboursGroup<calcGradVLeastSquares,ifSphOrSphBoundaryOrImmersedDem>();
       data->syncParticlesBetweenProcs<vect,readGradV0,writeGradV0>();
       data->syncParticlesBetweenProcs<vect,readGradV1,writeGradV1>();
       //data->syncParticlesBetweenProcs<vect,readGradV2,writeGradV2>();
 #endif
       //if (data->globals.mpiRank==0) cout<<"\tRe-initialising density...sphStep="<<data->globals.sphStep<<endl;
       for (int i=0;i<10;i++) {
-         data->traverse<calcHFromDens,ifSphOrSphBoundaryOrGhost>();
+         data->traverse<calcHFromDens,ifSphOrSphBoundaryOrImmersedDemOrGhost>();
          data->syncParticlesBetweenProcs<double,readH,writeH>();
-         data->neighboursGroup<calcDensity,ifSphOrSphBoundary>();
+         data->neighboursGroup<calcDensity,ifSphOrSphBoundaryOrImmersedDem>();
          data->syncParticlesBetweenProcs<double,readDens,writeDens>();
       }
    }
 
-   data->traverse<initSumsMiddle,ifSphOrSphBoundary>();
+   data->traverse<initSumsMiddle,ifSphOrSphBoundaryOrImmersedDem>();
 }
 
 void CsphIncompress::middle() {
@@ -61,60 +61,73 @@ void CsphIncompress::middle() {
    timeval t1,t2;
    gettimeofday(&t1,NULL);
 #ifdef LIQ_DEM
-   data->traverse<initPorosityAndDrag,ifSphOrSphBoundaryOrGhost>();
-   data->neighboursGroupCoupling<calcPorosity,ifDem>();
-   data->reverseSyncParticlesBetweenProcs<double,readPorosity,sumPorosity>();
-   data->reverseSyncParticlesBetweenProcs<double,read_dPorositydt,sum_dPorositydt>();
-   data->neighboursGroupAtRadius<finalisePorosity,ifSphOrSphBoundary>(LIQ_DEM_COUPLING_RADIUS);
-   data->syncParticlesBetweenProcs<double,readPorosity,writePorosity>();
-   data->traverse<setPorosityForBoundary,ifBoundary>();
-   /*
-   data->neighboursGroupCoupling<calcPorosity2,ifSphOrSphBoundary>();
-   data->traverse<setPorosityForBoundary,ifBoundary>();
-   data->syncParticlesBetweenProcs<double,readPorosity,writePorosity>();
-   */
-
-   data->traverse<calcHFromPorosity,ifSphOrSphBoundaryOrGhost>();
-   data->syncParticlesBetweenProcs<double,readH,writeH>();
-   data->neighboursGroup<calcDensity,ifSphOrSphBoundary>();
-   data->syncParticlesBetweenProcs<double,readDens,writeDens>();
+   data->neighboursGroupCoupling<calcPorosity,ifSphOrSphBoundaryOrImmersedDem>();
 #ifndef LIQ_DEM_ONE_WAY_COUPLE
-   data->neighboursGroupCoupling<calcDrag,ifDem>();
-   data->reverseSyncParticlesBetweenProcs<vect,readFdrag,sumFdrag>();
-   data->traverse<finaliseDrag,ifSphOrSphBoundary>();
-   //data->neighboursGroupCoupling<calcDrag2,ifSphOrSphBoundary>();
+#ifdef LIQ_DEM_SEPARATE_DRAGS
+   data->neighboursGroupCoupling<calcSPHDrag,ifSphOrSphBoundaryOrImmersedDem>();
+#else
+   data->traverse<initShepSum,ifDemOrGhost>();
+   data->neighboursGroupCoupling<calcShepSum,ifSphOrSphBoundaryOrImmersedDem>();
+   data->reverseSyncParticlesBetweenProcs<double,readShepSum,sumShepSum>();
+   data->syncParticlesBetweenProcs<double,readShepSum,writeShepSum>();
+   data->neighboursGroupCoupling<calcDEMtoSPHDrag,ifSphOrSphBoundaryOrImmersedDem>();
 #endif
-   /*
-   data->neighboursGroupCoupling<calcPorosityAndDrag2,ifSphOrSphBoundary>();
+#endif
+   data->traverse<finalisePorosity,ifSphOrSphBoundaryOrImmersedDem>();
+   data->traverse<setPorosityForBoundary,ifBoundary>();
    data->syncParticlesBetweenProcs<double,readPorosity,writePorosity>();
+
+#ifdef VAR_H_CORRECTION2
+   /*
+   data->traverse<initGradH,ifSphOrSphBoundaryOrDemOrGhost>();
+   data->neighboursGroupCoupling<calcGradPorosity,ifDem>();
+   data->reverseSyncParticlesBetweenProcs<vect,readGradH,sumGradH>();
    */
+   data->neighboursGroupCoupling<calcGradPorosity2,ifSphOrSphBoundaryOrImmersedDem>();
 #endif
+#endif
+
 #ifdef CORRECTED_GRADIENT
-   data->neighboursGroup<calcInvM,ifSphOrSphBoundary>();
+   data->neighboursGroup<calcInvM,ifSphOrSphBoundaryOrImmersedDem>();
 #endif
 #ifdef VAR_H_CORRECTION 
-   data->neighboursGroup<calcOmega,ifSphOrSphBoundary>();
+   data->neighboursGroup<calcOmega,ifSphOrSphBoundaryOrImmersedDem>();
    data->syncParticlesBetweenProcs<double,readOmega,writeOmega>();
 #endif
+#ifdef VAR_H_CORRECTION2
+#ifdef LIQ_DEM
+   data->traverse<finaliseGradH,ifSphOrSphBoundaryOrImmersedDem>();
+#else
+   data->neighboursGroup<calcGradH,ifSphOrSphBoundaryOrImmersedDem>();
+#endif
+   data->syncParticlesBetweenProcs<vect,readGradH,writeGradH>();
+#endif
 
-   data->traverse<calcPressSpsoundPdr2,ifSphOrSphBoundaryOrGhost>();	
+   data->traverse<calcPressSpsoundPdr2,ifSphOrSphBoundaryOrImmersedDemOrGhost>();	
 
 #ifdef SLK
-   data->neighboursGroup<calcGLeastSquares,ifSphOrSphBoundary>();
+   data->neighboursGroup<calcGLeastSquares,ifSphOrSphBoundaryOrImmersedDem>();
    data->syncParticlesBetweenProcs<vectTensor,readG,writeG>();
 #endif
 #ifdef SMOOTHED_VISC_VELOCITY
-   data->neighboursGroupScaled<smoothViscV,ifSphOrSphBoundary>();
+   data->neighboursGroupScaled<smoothViscV,ifSphOrSphBoundaryOrImmersedDem>();
    data->syncParticlesBetweenProcs<vect,readViscV,writeViscV>();
 #endif
    //cout <<"rank = "<<data->globals.mpiRank<<"before force "<<endl;
    data->neighbours<calcForce,ifSphOrSphBoundary>();
    //cout <<"rank = "<<data->globals.mpiRank<<"after force"<<endl;
 #ifdef BACKGROUND_PRESSURE_FORCE
-   data->traverse<addBackgroundPressure,ifSphOrSphBoundary>();
+   data->traverse<addBackgroundPressure,ifSphOrSphBoundaryOrImmersedDem>();
 #endif
 #ifdef LIQ_DEM
+#ifdef LIQ_DEM_TEST
+   data->traverse<addGradPorosityTerm,ifSphOrSphBoundary>();
+#endif
+#ifdef LIQ_DEM_VARIABLE_TIMESTEP
+   data->globals.newDt = min(data->globals.newDt,data->globals.demDt);
+#else
    data->globals.newDt = min(data->globals.newDt,liqDemCondition());
+#endif
 #ifndef FIXED_DEM
 #ifndef NO_DEM_CONTACTS
    if (data->globals.time > TIME_DROP_PARTICLE) {
@@ -123,7 +136,7 @@ void CsphIncompress::middle() {
 #endif
 #endif
 #endif
-   data->traverse<accelCondition,ifSphOrDem>(); 
+   data->traverse<accelCondition,ifSphOrSphBoundaryOrImmersedDemOrDem>(); 
    gettimeofday(&t2,NULL);
    data->globals.wtTotalForceCalc.tv_sec += t2.tv_sec-t1.tv_sec;
    data->globals.wtTotalForceCalc.tv_usec += t2.tv_usec-t1.tv_usec;
@@ -144,7 +157,7 @@ void CsphIncompress::middle() {
    data->traverse<kick,ifSphOrSphBoundary>(0.5*oldDt,0.5*data->globals.dt);
    
 
-   data->traverse<initSumsEnd,ifSphOrSphBoundary>();
+   data->traverse<initSumsEnd,ifSphOrSphBoundaryOrImmersedDem>();
 #ifdef LIQ_DEM
    data->traverse<driftRAndKick,ifDem>();
    data->traverse<initSumsMiddle,ifDem>();
@@ -153,9 +166,12 @@ void CsphIncompress::middle() {
 
 void CsphIncompress::end() {
 
+#ifdef LIQ_DEM
+   data->globals.demDt = data->globals.maxdt;
+#endif
 
 #ifndef SMOOTHING
-   data->traverse<driftR,ifSphOrSphBoundary>();
+   data->traverse<driftR,ifSphOrSphBoundaryOrImmersedDem>();
 #endif
 #ifdef SLK
    data->globals.slkIndex0++;
@@ -168,19 +184,37 @@ void CsphIncompress::end() {
 
    data->reset();
 #ifdef CORRECTED_GRADIENT
-   data->neighboursGroup<calcInvM,ifSphOrSphBoundary>();
+   data->neighboursGroup<calcInvM,ifSphOrSphBoundaryOrImmersedDem>();
 #endif
 #ifdef VAR_H_CORRECTION 
-   data->neighboursGroup<calcOmega,ifSphOrSphBoundary>();
+   data->neighboursGroup<calcOmega,ifSphOrSphBoundaryOrImmersedDem>();
 #endif
+#ifdef VAR_H_CORRECTION2
+#ifdef LIQ_DEM
+   data->neighboursGroupCoupling<calcGradPorosity2,ifSphOrSphBoundaryOrImmersedDem>();
+   data->traverse<finaliseGradH,ifSphOrSphBoundaryOrImmersedDem>();
+#else
+   data->neighboursGroup<calcGradH,ifSphOrSphBoundaryOrImmersedDem>();
+#endif
+   data->syncParticlesBetweenProcs<vect,readGradH,writeGradH>();
+#endif
+#ifdef LIQ_DEM_DDDT_VER2
+   data->neighboursGroupCoupling<calcPorosity2,ifSphOrSphBoundaryOrImmersedDem>();
+   data->traverse<finalisePorosity,ifSphOrSphBoundaryOrImmersedDem>();
+   data->syncParticlesBetweenProcs<double,readPorosity,writePorosity>();
+   data->syncParticlesBetweenProcs<double,read_dPorositydt,write_dPorositydt>();
+#endif
+
+
    timeval t1,t2;
    gettimeofday(&t1,NULL);
 #ifdef SLK
-   data->neighboursGroup<calcGLeastSquares,ifSphOrSphBoundary>();
+   data->neighboursGroup<calcGLeastSquares,ifSphOrSphBoundaryOrImmersedDem>();
    data->syncParticlesBetweenProcs<vectTensor,readG,writeG>();
 #endif
-   data->neighbours<calcDddtDudt,ifSphOrSphBoundary>();
+   data->neighbours<calcDddtDudt,ifSphOrSphBoundaryOrImmersedDem>();
 #ifdef LIQ_DEM
+   //data->traverse<correctDddt,ifSphOrSphBoundary>();
    data->syncParticlesBetweenProcs<vect,readF,writeF>();
    data->syncParticlesBetweenProcs<vect,readFb,writeFb>();
    data->syncParticlesBetweenProcs<vect,readFp,writeFp>();
@@ -208,11 +242,11 @@ void CsphIncompress::end() {
    data->globals.wtTotalDddtCalc.tv_sec += t2.tv_sec-t1.tv_sec;
    data->globals.wtTotalDddtCalc.tv_usec += t2.tv_usec-t1.tv_usec;
 
-   data->traverse<driftRest,ifSphOrSphBoundary>();
+   data->traverse<driftRest,ifSphOrSphBoundaryOrImmersedDem>();
 
 
    
-   data->traverse<calcEnergies,ifSphOrSphBoundary>();
+   data->traverse<calcEnergies,ifSphOrSphBoundaryOrImmersedDem>();
 
 }
 

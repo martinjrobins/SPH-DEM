@@ -7,7 +7,7 @@
 #define _3D_
 #define NDIM 3
 #define INCOMPRESS
-
+#define SLIP_BOUNDARIES
 const double PI = 3.14159265;
 
 #include "parameters.h" 
@@ -52,7 +52,7 @@ const double REFD = 997.0479;
 //#define HANN
 //#define VISC_MONAGHAN
 #define VISC_ARTIFICIAL
-const double ALPHA_ARTIFICIAL = 0.1;
+const double ALPHA_ARTIFICIAL = 0.025;
 //#define VISC_CLEARY
 #define VORT_LEASTSQUARES
 //#define REFERENCE_FRAME
@@ -60,12 +60,14 @@ const double ALPHA_ARTIFICIAL = 0.1;
 //#define DENS_DIFFUSE
 #define NO_ANTICLUMPING
 #define CONST_H
+#define SLIP_BOUNDARIES
 //#define CORRECTED_GRADIENT
 //#define MORRIS_SPH_BOUNDARY
 //#define CHECK_FOR_NAN
 const double DAMPTIME = WALLUP/2.0;
 const int RESTART_EVERY_N_STEPS = 100;
 const int REINIT_DENS_EVERY_N_STEPS = 20000000;
+const int REINIT_DENS_AT_N_STEPS = 20000000;
 
 
 const double VREF = sqrt(2.0*9.81*RMAX[2]);
@@ -94,5 +96,5 @@ const double SMOOTH_GRID_SIZE = (RMAX[0]-RMIN[0])/floor((RMAX[0]-RMIN[0])/APPROX
 const double GRIDSEP = PSEP;
 
 
-#define MIN_ALPHA 0.1
+#define MIN_ALPHA 0.025
 #endif

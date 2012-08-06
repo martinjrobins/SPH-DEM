@@ -14,7 +14,7 @@ typedef vect my2dMatrix[NDIM];
  * enum type of different particles types
  * used for the iam member of the Cparticle type
  */
-enum iamTypes {sph, sphBoundary, immovable, boundary,ghost,boundaryobj1,boundaryobj2,boundaryobj3,boundaryobj4,boundaryobj5,boundaryobj6,dem,demBoundary};
+enum iamTypes {sph, sphBoundary, immovable, boundary,ghost,boundaryobj1,boundaryobj2,boundaryobj3,boundaryobj4,boundaryobj5,boundaryobj6,dem,demBoundary,immersedDem};
 
 
 class Cparticle;
@@ -36,6 +36,8 @@ public:
 #endif
 #ifdef LIQ_DEM
       double porosity;
+      double shepSum;
+      vect fdrag;
 #endif
       double mass;
       double dens;
@@ -73,9 +75,13 @@ class Cparticle {
 #ifdef VAR_H_CORRECTION
       omega = 0;
 #endif
+#ifdef VAR_H_CORRECTION2
+      gradH = 0.0;
+#endif
 #ifdef LIQ_DEM
       porosity = 1.0;
       dporositydt = 0.0;
+      gradPorosity = 0.0;
       gHead = 0;
       fdrag = 0.0;
       for (int i=0;i<TWIN_N;i++) {
@@ -147,9 +153,16 @@ class Cparticle {
     * copy a particle onto another. 
     */
    Cparticle& operator=(const Cparticle &p) {
+#ifdef VAR_H_CORRECTION
+      omega = p.omega;
+#endif
+#ifdef VAR_H_CORRECTION2
+      gradH = p.gradH;
+#endif
 #ifdef LIQ_DEM
       porosity = p.porosity;
       dporositydt = p.dporositydt;
+      gradPorosity = p.gradPorosity;
       gHead = p.gHead;
       fdrag = p.fdrag;
       for (int i=0;i<TWIN_N;i++) {
@@ -235,9 +248,13 @@ class Cparticle {
 #ifdef VAR_H_CORRECTION
    double omega;
 #endif
+#ifdef VAR_H_CORRECTION2
+   vect gradH;
+#endif
 #ifdef LIQ_DEM
    double porosity;
    double dporositydt;
+   vect gradPorosity;
    int gHead;
    vect fdrag;
    vect gVect[TWIN_N];
@@ -277,6 +294,19 @@ class Cparticle {
    double dRhoKernel;
    double dMassDiff;
 #endif
+#ifdef TEST_VISC
+   vect origPos;
+#endif
+#ifdef DEFORMATION_MATRIX
+   vectTensor defMat;
+   vectTensor RCGMat;
+   double eval1,eval2;
+   vect evec1;
+#ifdef HALLER_LCS
+   vect grad_eval1;
+   double Z_surface;
+#endif
+#endif
 
    double eViscF,deViscFdt;
    double eViscB,deViscBdt;
@@ -292,6 +322,8 @@ class Cparticle {
 inline CghostData& CghostData::operator=(const Cparticle &p) {
 #ifdef LIQ_DEM
          porosity = p.porosity;
+         shepSum = p.shepSum;
+         fdrag = p.fdrag;
 #endif
          r = p.r;
          v = p.v;
@@ -328,6 +360,8 @@ inline CghostData& CghostData::operator=(const Cparticle &p) {
 inline Cparticle& Cparticle::operator=(const CghostData &g) {
 #ifdef LIQ_DEM
       porosity = g.porosity;
+      shepSum = g.shepSum;
+      fdrag = g.fdrag;
 #endif
       r = g.r;
       v = g.v;

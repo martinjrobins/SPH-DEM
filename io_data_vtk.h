@@ -34,7 +34,7 @@ public:
        * read/write regular output file
        */
       void readOutput(int timestep,particleContainer *outPs,CglobalVars *globals);
-      void writeOutput(int timestep,particleContainer &ps,CcustomSimBase &customSim,CglobalVars *globals);
+      void writeOutput(int timestep,particleContainer &ps,CglobalVars *globals);
 
       /*
        * read output file using CSIRO format
