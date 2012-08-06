@@ -179,7 +179,6 @@ int main(int argc, char *argv[]) {
    cout <<"reduced mass = "<<DEM_MIN_REDUCED_MASS<<endl;
 cout <<" tdem = "<< (1.0/50.0)*PI*sqrt(DEM_MIN_REDUCED_MASS)/sqrt(DEM_K-pow(0.5*DEM_GAMMA,2)/DEM_MIN_REDUCED_MASS) << endl;
    cout <<"particle reynolds number = "<<2.0*DEM_RADIUS*INFLOW_VEL/VISCOSITY<<endl;
-
    vect normal = 0.0;
    normal[2] = 1.0;
    vect newOrigin = CYLINDER_ORIGIN;
