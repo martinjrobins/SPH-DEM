@@ -1,0 +1,71 @@
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/meta
+END
+Makefile.in
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/meta/Makefile.in
+END
+metaprog.h
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/meta/metaprog.h
+END
+matvec.h
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/meta/matvec.h
+END
+product.h
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/meta/product.h
+END
+vecassign.h
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/meta/vecassign.h
+END
+Makefile.am
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/meta/Makefile.am
+END
+matmat.h
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/meta/matmat.h
+END
+sum.h
+K 25
+svn:wc:ra_dav:version-url
+V 58
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/meta/sum.h
+END
+dot.h
+K 25
+svn:wc:ra_dav:version-url
+V 58
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/meta/dot.h
+END
+matassign.h
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/meta/matassign.h
+END
+Makefile
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/meta/Makefile
+END

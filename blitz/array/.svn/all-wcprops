@@ -1,0 +1,275 @@
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/array
+END
+misc.cc
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/array/misc.cc
+END
+convolve.cc
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/array/convolve.cc
+END
+convolve.h
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/array/convolve.h
+END
+Makefile.in
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/array/Makefile.in
+END
+cycle.cc
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/array/cycle.cc
+END
+resize.cc
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/array/resize.cc
+END
+slice.h
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/array/slice.h
+END
+bops.cc
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/array/bops.cc
+END
+cgsolve.h
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/array/cgsolve.h
+END
+zip.h
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/array/zip.h
+END
+iter.h
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/array/iter.h
+END
+io.cc
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/array/io.cc
+END
+complex.cc
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/array/complex.cc
+END
+domain.h
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/array/domain.h
+END
+stencil-et.h
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/array/stencil-et.h
+END
+et.h
+K 25
+svn:wc:ra_dav:version-url
+V 58
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/array/et.h
+END
+fastiter.h
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/array/fastiter.h
+END
+stencils.h
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/array/stencils.h
+END
+uops.cc
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/array/uops.cc
+END
+Makefile
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/array/Makefile
+END
+multi.h
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/array/multi.h
+END
+geometry.h
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/array/geometry.h
+END
+ops.cc
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/array/ops.cc
+END
+shape.h
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/array/shape.h
+END
+ops.h
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/array/ops.h
+END
+methods.cc
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/array/methods.cc
+END
+indirect.h
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/array/indirect.h
+END
+asexpr.h
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/array/asexpr.h
+END
+newet-macros.h
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/array/newet-macros.h
+END
+interlace.cc
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/array/interlace.cc
+END
+storage.h
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/array/storage.h
+END
+reduce.cc
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/array/reduce.cc
+END
+reduce.h
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/array/reduce.h
+END
+cartesian.h
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/array/cartesian.h
+END
+where.h
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/array/where.h
+END
+map.h
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/array/map.h
+END
+funcs.h
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/array/funcs.h
+END
+expr.h
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/array/expr.h
+END
+functorExpr.h
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/array/functorExpr.h
+END
+newet.h
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/array/newet.h
+END
+stencils.cc
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/array/stencils.cc
+END
+Makefile.am
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/array/Makefile.am
+END
+stencilops.h
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/array/stencilops.h
+END
+eval.cc
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/array/eval.cc
+END
+slicing.cc
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/svn/repos/THORNTON/!svn/ver/959/Code/SPH/blitz/array/slicing.cc
+END
