@@ -296,6 +296,10 @@ void Nmisc::boundaryPlane(vector<Cparticle> &ps,vect side1,vect side2,vect neigh
 }
 
 void Nmisc::boundaryCircle(vector<Cparticle> &ps,const vect &origin,const double radiusMin,const double radiusMax,const vect normal) {
+   boundaryCircle(ps,origin,radiusMin,radiusMax,normal,1,1);
+}
+
+void Nmisc::boundaryCircle(vector<Cparticle> &ps,const vect &origin,const double radiusMin,const double radiusMax,const vect normal,bool inner_corner,bool outer_corner) {
    Cparticle p;
    const double dRadius = radiusMax-radiusMin;
    const double NR = ceil(dRadius/(BFAC*PSEP));
@@ -323,18 +327,18 @@ void Nmisc::boundaryCircle(vector<Cparticle> &ps,const vect &origin,const double
 #ifdef _3D_
          p.norm3 = cross(newN,p.norm1);
 #endif
-         if (i==NR) {
+         p.norm2 = 0,0,0;
+         if (outer_corner&&(i==NR)) {
             p.norm2[0] = -cos(theta);
             p.norm2[1] = -sin(theta);
             p.norm2[2] = 0;
             p.concave = 1;
-         } else if ((i==0)&&(radiusMin>0)) {
+         } 
+         if (inner_corner&&(i==0)&&(radiusMin>0)) {
             p.norm2[0] = -cos(theta);
             p.norm2[1] = -sin(theta);
             p.norm2[2] = 0;
             p.concave = 1;
-         } else {
-            p.norm2 = 0,0,0;
          }
          ps.push_back(p);
       }
@@ -371,6 +375,46 @@ void Nmisc::boundaryCylinderNoTopBottom(vector<Cparticle> &ps,const vect &origin
          p.norm3[2] = 0;
          p.norm2 = 0,0,0;
          ps.push_back(p);
+      }
+   }
+}
+
+void Nmisc::sphBoundaryCylinderNoTopBottom(vector<Cparticle> &ps,const vect &origin,const double radius,const double height) {
+   Cparticle p;
+   const double NH = ceil(height/(PSEP));
+   const double HPSEP = height/NH;
+   const vect n(1,0,0);
+   const vect nt(0,0,1);
+   double nc[3];
+   double tpsep[3];
+   for (int k=0;k<3;k++) {
+      nc[k] = ceil(2*PI*(radius+k*PSEP)/PSEP);
+      if (nc[k] == 0) nc[k]++;
+      tpsep[k] = 2.0*PI/nc[k];
+   }
+   for (int i=0;i<NH;i++) {
+      for (int k=0;k<3;k++) {
+      for (int j=0;j<nc[k];j++) {
+         const double theta = j*tpsep[k];
+         vect newN;
+         newN[0] = n[0]*cos(theta)-n[1]*sin(theta);
+         newN[1] = n[0]*sin(theta)+n[1]*cos(theta);
+         p.r = (radius+k*PSEP)*newN + nt*i*HPSEP + origin;
+         p.tag = ps.size()+1;
+         p.dens = DENS;
+         p.mass = pow(BFAC*PSEP,NDIM)*DENS;
+         p.h = H;
+         p.v = 0,0,0;
+         p.iam = sphBoundary;
+         p.norm1[0] = -cos(theta);
+         p.norm1[1] = -sin(theta);
+         p.norm1[2] = 0;
+         p.norm3[0] = sin(theta);
+         p.norm3[1] = -cos(theta);
+         p.norm3[2] = 0;
+         p.norm2 = 0,0,0;
+         ps.push_back(p);
+      }
       }
    }
 }

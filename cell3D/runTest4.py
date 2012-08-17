@@ -140,6 +140,7 @@ vi = 100.0
 #dirRestart = "/home/mrobinson/data/cell3D/120606145231varResBaseParam"
 #dirRestart = "."
 dirRestart = "/home/mrobinson/data/cell3D/120805023509low_vref_dry/d1_v100_dry2cpu8"
+#dirRestart = "/home/mrobinson/data/cell3D/120808114850sph_inlet_test/d1_v100_dry2cpu8"
 restart = True
 
 ncpu_x = 2;
@@ -153,15 +154,6 @@ for res in [2]:
    writeParametersDry(res,ri,rri,vi,dem_dens,dem_d,ncpu_x,ncpu_y,ncpu_z)
    compileProgram()
    name = "d1_v100_dry"+str(res)+"cpu"+str(ncpu)
-   newDir = os.environ["HOME"]+"/data/cell3D/"+baseName+"/"+name+"/"
-   copyToDirectory(newDir,dirRestart)
-   runSimulation(newDir,name,ncpu,restart)
-
-   vi = 400.0
-
-   writeParametersDry(res,ri,rri,vi,dem_dens,dem_d,ncpu_x,ncpu_y,ncpu_z)
-   compileProgram()
-   name = "d1_v400_dry"+str(res)+"cpu"+str(ncpu)
    newDir = os.environ["HOME"]+"/data/cell3D/"+baseName+"/"+name+"/"
    copyToDirectory(newDir,dirRestart)
    runSimulation(newDir,name,ncpu,restart)

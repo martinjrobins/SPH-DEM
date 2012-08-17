@@ -131,10 +131,10 @@ const double INIT_DEM_DENS = DEM_DENS*3.0;
 const double INIT_DEM_MASS = DEM_MASS*3.0;
 const double DEM_DISK_HEIGHT = CYLINDER_HEIGHT/20.0;
 const double DEM_DISK_POROSITY = 0.5;
-const double DEM_K = 1.0e03;
-const double DEM_GAMMA = 0.004;
-//const double DEM_K = 1.0e01;
-//const double DEM_GAMMA = 0.0004;
+//const double DEM_K = 1.0e03;
+//const double DEM_GAMMA = 0.004;
+const double DEM_K = 1.0e01;
+const double DEM_GAMMA = 0.0004;
 
 const double DEM_MIN_REDUCED_MASS = 0.5*DEM_MASS;
 //const double DEM_COEFF_REST = exp(-PI*DEM_GAMMA/(2.0*DEM_MIN_REDUCED_MASS*sqrt(DEM_K/DEM_MIN_REDUCED_MASS-pow(DEM_GAMMA/(2.0*DEM_MIN_REDUCED_MASS),2))));

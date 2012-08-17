@@ -17,7 +17,7 @@ def writePbsFile(name,ncpu,restart):
    file.write("#PBS -l nodes=1:ppn="+str(ncpu)+"\n")
    file.write(open("pbs-script-base","r").read())
    if restart:
-      file.write("mpiexec -np "+str(ncpu)+" ./run results 100 results\n")
+      file.write("mpiexec -np "+str(ncpu)+" ./run results 99 results\n")
    else:
       file.write("mpiexec -np "+str(ncpu)+" ./run initData 0 results\n")
    file.close()
@@ -111,7 +111,7 @@ def copyToDirectory(dirName,dirRestart):
    shutil.copy("parameters.h",dirName)
    copyPattern("*.gnu",dirName)
    copyPattern("*.m",dirName)
-   copyPattern(dirRestart+"/resultsRestart0000100*.*",dirName)
+   copyPattern(dirRestart+"/resultsRestart0000099*.*",dirName)
    copyPattern(dirRestart+"/resultsGlobals*",dirName)
    copyPattern(dirRestart+"/resultsDomain*",dirName)
 

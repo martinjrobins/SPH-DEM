@@ -139,39 +139,38 @@ vi = 100.0
 
 #dirRestart = "/home/mrobinson/data/cell3D/120606145231varResBaseParam"
 #dirRestart = "."
-dirRestart = "/home/mrobinson/data/cell3D/120805023509low_vref_dry/d1_v100_dry2cpu8"
-restart = True
+dirRestart = "/home/mrobinson/data/cell3D/120806214733incr_spring_other_dry/d2_v100_dry5cpu8"
+restart = False
 
 ncpu_x = 2;
 ncpu_y = 2;
 ncpu_z = 2;
 ncpu = ncpu_x*ncpu_y*ncpu_z;
 
-for res in [2]:
-   vi = 50.0
+rri = 1.0/1000.0
+ri = rri
+
+for res in [5]:
+   vi = 100.0
 
    writeParametersDry(res,ri,rri,vi,dem_dens,dem_d,ncpu_x,ncpu_y,ncpu_z)
    compileProgram()
-   name = "d1_v50_dry"+str(res)+"cpu"+str(ncpu)
-   newDir = os.environ["HOME"]+"/data/cell3D/"+baseName+"/"+name+"/"
-   copyToDirectory(newDir,dirRestart)
-   runSimulation(newDir,name,ncpu,restart)
-   
-   vi = 200.0
-
-   writeParametersDry(res,ri,rri,vi,dem_dens,dem_d,ncpu_x,ncpu_y,ncpu_z)
-   compileProgram()
-   name = "d1_v200_dry"+str(res)+"cpu"+str(ncpu)
+   name = "d2_v100_dry"+str(res)+"cpu"+str(ncpu)
    newDir = os.environ["HOME"]+"/data/cell3D/"+baseName+"/"+name+"/"
    copyToDirectory(newDir,dirRestart)
    runSimulation(newDir,name,ncpu,restart)
 
-   vi = 600.0
+rri = 2.5/1000.0
+ri = rri
+
+for res in [14]:
+   vi = 100.0
 
    writeParametersDry(res,ri,rri,vi,dem_dens,dem_d,ncpu_x,ncpu_y,ncpu_z)
    compileProgram()
-   name = "d1_v600_dry"+str(res)+"cpu"+str(ncpu)
+   name = "d5_v100_dry"+str(res)+"cpu"+str(ncpu)
    newDir = os.environ["HOME"]+"/data/cell3D/"+baseName+"/"+name+"/"
    copyToDirectory(newDir,dirRestart)
    runSimulation(newDir,name,ncpu,restart)
+
 

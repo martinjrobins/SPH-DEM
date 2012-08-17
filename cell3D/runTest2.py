@@ -17,7 +17,7 @@ def writePbsFile(name,ncpu,restart):
    file.write("#PBS -l nodes=4:ppn="+str(ncpu/4)+"\n")
    file.write(open("pbs-script-base","r").read())
    if restart:
-      file.write("mpiexec -np "+str(ncpu)+" ./run results 100 results\n")
+      file.write("mpiexec -np "+str(ncpu)+" ./run results 99 results\n")
    else:
       file.write("mpiexec -np "+str(ncpu)+" ./run initData 0 results\n")
    file.close()
@@ -111,7 +111,7 @@ def copyToDirectory(dirName,dirRestart):
    shutil.copy("parameters.h",dirName)
    copyPattern("*.gnu",dirName)
    copyPattern("*.m",dirName)
-   copyPattern(dirRestart+"/resultsRestart0000100*.*",dirName)
+   copyPattern(dirRestart+"/resultsRestart0000099*.*",dirName)
    copyPattern(dirRestart+"/resultsGlobals*",dirName)
    copyPattern(dirRestart+"/resultsDomain*",dirName)
 
@@ -138,8 +138,9 @@ ri = rri;
 vi = 100.0
 
 #dirRestart = "/home/mrobinson/data/cell3D/120606145231varResBaseParam"
-dirRestart = "."
-restart = False
+#dirRestart = "."
+dirRestart = "/home/mrobinson/data/cell3D/120805021554low_vref_wet/d1_v100_wet2cpu8"
+restart = True
 
 ncpu_x = 2;
 ncpu_y = 2;
@@ -165,46 +166,29 @@ for res in [2]:
    copyToDirectory(newDir,dirRestart)
    runSimulation(newDir,name,ncpu,restart)
 
-rri = 1.0/1000.0
-ri = rri
-
-for res in [5]:
-   vi = 100.0
+   vi = 50.0
 
    writeParametersWet(res,ri,rri,vi,dem_dens,dem_d,ncpu_x,ncpu_y,ncpu_z)
    compileProgram()
-   name = "d2_v100_wet"+str(res)+"cpu"+str(ncpu)
+   name = "d1_v50_wet"+str(res)+"cpu"+str(ncpu)
    newDir = os.environ["HOME"]+"/data/cell3D/"+baseName+"/"+name+"/"
    copyToDirectory(newDir,dirRestart)
    runSimulation(newDir,name,ncpu,restart)
 
-   vi = 400.0
+   vi = 200.0
 
    writeParametersWet(res,ri,rri,vi,dem_dens,dem_d,ncpu_x,ncpu_y,ncpu_z)
    compileProgram()
-   name = "d2_v400_wet"+str(res)+"cpu"+str(ncpu)
+   name = "d1_v200_wet"+str(res)+"cpu"+str(ncpu)
    newDir = os.environ["HOME"]+"/data/cell3D/"+baseName+"/"+name+"/"
    copyToDirectory(newDir,dirRestart)
    runSimulation(newDir,name,ncpu,restart)
 
-rri = 2.5/1000.0
-ri = rri
-
-for res in [14]:
-   vi = 100.0
+   vi = 600.0
 
    writeParametersWet(res,ri,rri,vi,dem_dens,dem_d,ncpu_x,ncpu_y,ncpu_z)
    compileProgram()
-   name = "d5_v100_wet"+str(res)+"cpu"+str(ncpu)
-   newDir = os.environ["HOME"]+"/data/cell3D/"+baseName+"/"+name+"/"
-   copyToDirectory(newDir,dirRestart)
-   runSimulation(newDir,name,ncpu,restart)
-
-   vi = 400.0
-
-   writeParametersWet(res,ri,rri,vi,dem_dens,dem_d,ncpu_x,ncpu_y,ncpu_z)
-   compileProgram()
-   name = "d5_v400_wet"+str(res)+"cpu"+str(ncpu)
+   name = "d1_v600_wet"+str(res)+"cpu"+str(ncpu)
    newDir = os.environ["HOME"]+"/data/cell3D/"+baseName+"/"+name+"/"
    copyToDirectory(newDir,dirRestart)
    runSimulation(newDir,name,ncpu,restart)

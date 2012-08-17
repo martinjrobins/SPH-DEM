@@ -204,7 +204,7 @@ public:
        * are output in outPs
        */
       template <void theFunct(Cparticle &,Cparticle &,CglobalVars &)>
-      void functionOverGrid(vector<Cparticle> &outPs,vectInt &gridDimN);
+      void functionOverGrid(vector<Cparticle> &outPs,vect min,vect max,vectInt &gridDimN);
 
       /*
        * find neighbours of particle _p. neighbours returned in _neighbrs

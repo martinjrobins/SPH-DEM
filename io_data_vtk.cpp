@@ -129,6 +129,10 @@ void Cio_data_vtk::readOutput(int timestep,particleContainer *outPs,CglobalVars 
    int n = dataset->GetNumberOfPoints();
    vtkIntArray *tag= static_cast<vtkIntArray *> (dataset->GetPointData()->GetArray("tag"));
    vtkIntArray *iam = static_cast<vtkIntArray *> (dataset->GetPointData()->GetArray("iam"));
+#ifdef LIQ_DEM
+   vtkFloatArray *shepSum = static_cast<vtkFloatArray *> (dataset->GetPointData()->GetArray("shepSum"));
+   vtkFloatArray *porosity = static_cast<vtkFloatArray *> (dataset->GetPointData()->GetArray("porosity"));
+#endif
    vtkFloatArray *v = static_cast<vtkFloatArray *> (dataset->GetPointData()->GetArray("v"));
    vtkFloatArray *vhat = static_cast<vtkFloatArray *> (dataset->GetPointData()->GetArray("vhat"));
    vtkFloatArray *fv = static_cast<vtkFloatArray *> (dataset->GetPointData()->GetArray("fv"));
@@ -158,6 +162,11 @@ void Cio_data_vtk::readOutput(int timestep,particleContainer *outPs,CglobalVars 
          p->vort[j]=vvort[j];
       }
       p->tag= tag->GetValue(i);
+#ifdef LIQ_DEM
+      p->shepSum = shepSum->GetValue(i);
+      p->porosity = porosity->GetValue(i);
+#endif
+      p->mass = pow(PSEP,NDIM)*DENS;
       p->iam = (iamTypes)iam->GetValue(i);
       p->h= h->GetValue(i);
       p->dens = dens->GetValue(i);
@@ -840,11 +849,20 @@ void Cio_data_vtk::writeGrid(int timestep,particleContainer &ps,vectInt &gridDim
    vtkPoints *newPts = vtkPoints::New();;
    vtkDoubleArray *dens = vtkDoubleArray::New();
    vtkDoubleArray *v = vtkDoubleArray::New();
+#ifdef LIQ_DEM
+   vtkDoubleArray *porosity = vtkDoubleArray::New();
+   vtkDoubleArray *shepSum = vtkDoubleArray::New();
+#endif
+
    vtkDoubleArray *vort = vtkDoubleArray::New();
 
    newPts->SetNumberOfPoints(n);
 
    dens->SetNumberOfValues(n);
+#ifdef LIQ_DEM
+   porosity->SetNumberOfValues(n);
+   shepSum->SetNumberOfValues(n);
+#endif
    v->SetNumberOfComponents(3);
    v->SetNumberOfTuples(n);
    if (NDIM==3) {
@@ -855,6 +873,10 @@ void Cio_data_vtk::writeGrid(int timestep,particleContainer &ps,vectInt &gridDim
    }
 
    dens->SetName("dens");
+#ifdef LIQ_DEM
+   porosity->SetName("porosity");
+   shepSum->SetName("shepSum");
+#endif
    v->SetName("v");
    vort->SetName("vort");
 
@@ -874,6 +896,10 @@ void Cio_data_vtk::writeGrid(int timestep,particleContainer &ps,vectInt &gridDim
       vort->SetTuple3(i,p->vort[0],p->vort[1],p->vort[2]);
 #endif
       dens->SetValue(i,p->dens);
+#ifdef LIQ_DEM
+      porosity->SetValue(i,p->porosity);
+      shepSum->SetValue(i,p->shepSum);
+#endif
       i++;
    }
 
@@ -891,6 +917,10 @@ void Cio_data_vtk::writeGrid(int timestep,particleContainer &ps,vectInt &gridDim
    }
    dataset->SetPoints(newPts);
    dataset->GetPointData()->AddArray(dens);
+#ifdef LIQ_DEM
+   dataset->GetPointData()->AddArray(porosity);
+   dataset->GetPointData()->AddArray(shepSum);
+#endif
    dataset->GetPointData()->AddArray(v);
    dataset->GetPointData()->AddArray(vort);
    dataset->GetPointData()->SetActiveScalars("dens");
@@ -912,6 +942,10 @@ void Cio_data_vtk::writeGrid(int timestep,particleContainer &ps,vectInt &gridDim
    dataset->Delete();
    newPts->Delete();
    dens->Delete();
+#ifdef LIQ_DEM
+   porosity->Delete();
+   shepSum->Delete();
+#endif
    v->Delete();
    vort->Delete();
 }

@@ -7,8 +7,14 @@ inline void addGravity(Cparticle &p,CglobalVars &g) {
    p.f[2] -= 9.81;
 }
 inline void setupInflow(Cparticle &p,CglobalVars &g) {
-   p.v = 0,0,INFLOW_VEL;
-   p.vhat = 0,0,INFLOW_VEL;
+   const bool boundary = (p.r[0]*p.r[0]+p.r[1]*p.r[1]) > REAL_INLET_RADIUS*REAL_INLET_RADIUS;
+   if (boundary) {
+      p.v = 0.0;
+      p.vhat = 0.0;
+   } else {
+      p.v = 0,0,INFLOW_VEL;
+      p.vhat = 0,0,INFLOW_VEL;
+   }
 }
 inline void setH(Cparticle &p,CglobalVars &g) {
    p.h = H;
@@ -61,7 +67,8 @@ inline void addCustomBoundaries(Cparticle &p,CglobalVars &g) {
 inline void setupInflowTransition(Cparticle &p,CglobalVars &g) {
    const double scaledr = (p.r[2]-(CYLINDER_ORIGIN[2]-INLET_HEIGHT+3.0*PSEP))/(3.0*PSEP);
    const double scaledr2 = (p.r[2]-(CYLINDER_ORIGIN[2]+CYLINDER_HEIGHT*(1+TOP_BUFFER)+INLET_HEIGHT))/(3.0*PSEP);
-   if ((scaledr > 0.0) && (scaledr < 1.0)) {
+   const bool boundary = (p.r[0]*p.r[0]+p.r[1]*p.r[1]) > REAL_INLET_RADIUS*REAL_INLET_RADIUS;
+   if ((!boundary) && (scaledr > 0.0) && (scaledr < 1.0)) {
       p.iam = sph;
       const vect inflowV(0,0,INFLOW_VEL);
       const double ratio = 0.5*(1+cos(PI*scaledr));

@@ -182,7 +182,11 @@ cout <<" tdem = "<< (1.0/50.0)*PI*sqrt(DEM_MIN_REDUCED_MASS)/sqrt(DEM_K-pow(0.5*
    vect normal = 0.0;
    normal[2] = 1.0;
    vect newOrigin = CYLINDER_ORIGIN;
+#ifdef SPH_INLET
+   Nmisc::boundaryCircle(ps,CYLINDER_ORIGIN,INLET_RADIUS+3*PSEP,CYLINDER_RADIUS,normal,0,1);
+#else
    Nmisc::boundaryCircle(ps,CYLINDER_ORIGIN,INLET_RADIUS,CYLINDER_RADIUS,normal);
+#endif
    
    CglobalVars globals;
    globals.procNeighbrs = -1;
@@ -216,21 +220,33 @@ cout <<" tdem = "<< (1.0/50.0)*PI*sqrt(DEM_MIN_REDUCED_MASS)/sqrt(DEM_K-pow(0.5*
    //Nmisc::sphCylinder(ps,origin);
    
    
-   newOrigin = CYLINDER_ORIGIN;
-   const double newHeight = CYLINDER_HEIGHT*(1+TOP_BUFFER) - BFAC*PSEP;
-   newOrigin[2] += BFAC*PSEP;
    cout <<"adding cylinder at origin"<<newOrigin<<endl;
+   newOrigin = CYLINDER_ORIGIN;
+   newOrigin[2] += BFAC*PSEP;
+   const double newHeight = CYLINDER_HEIGHT*(1+TOP_BUFFER) - BFAC*PSEP;
    Nmisc::boundaryCylinderNoTopBottom(ps,newOrigin,CYLINDER_RADIUS,newHeight);
    newOrigin[2] = CYLINDER_ORIGIN[2]-INLET_HEIGHT;
    cout <<"adding cylinder at origin"<<newOrigin<<endl;
+#ifdef SPH_INLET
+   Nmisc::sphBoundaryCylinderNoTopBottom(ps,newOrigin,INLET_RADIUS,INLET_HEIGHT+PSEP);
+#else
    Nmisc::boundaryCylinderNoTopBottom(ps,newOrigin,INLET_RADIUS,INLET_HEIGHT);
+#endif
    newOrigin[2] = CYLINDER_ORIGIN[2]+CYLINDER_HEIGHT*(1+TOP_BUFFER);
    normal[2] = -1.0;
    cout <<"adding cylinder at origin"<<newOrigin<<endl;
+#ifdef SPH_INLET
+   Nmisc::boundaryCircle(ps,newOrigin,INLET_RADIUS+3*PSEP,CYLINDER_RADIUS,normal,0,1);
+#else
    Nmisc::boundaryCircle(ps,newOrigin,INLET_RADIUS,CYLINDER_RADIUS,normal);
-   newOrigin[2] += PSEP;
+#endif
    cout <<"adding cylinder at origin"<<newOrigin<<endl;
+#ifdef SPH_INLET
+   Nmisc::sphBoundaryCylinderNoTopBottom(ps,newOrigin,INLET_RADIUS,INLET_HEIGHT);
+#else
+   newOrigin[2] += BFAC*PSEP;
    Nmisc::boundaryCylinderNoTopBottom(ps,newOrigin,INLET_RADIUS,INLET_HEIGHT);
+#endif
    //demPorousCylinder(ps,CYLINDER_ORIGIN,CYLINDER_RADIUS,DEM_DISK_HEIGHT,DEM_DISK_POROSITY);
    //newOrigin[2] = CYLINDER_ORIGIN[2]+CYLINDER_HEIGHT-DEM_DISK_HEIGHT;
    //demPorousCylinder(ps,newOrigin,CYLINDER_RADIUS,DEM_DISK_HEIGHT,0.5);

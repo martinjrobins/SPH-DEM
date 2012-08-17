@@ -34,7 +34,12 @@ class CsphIncompress {
       }
 
       void renderToGrid(vector<Cparticle> &ps,vectInt &gridDims) {
-         data->functionOverGrid<calcGridQuantities>(ps,gridDims);
+         vect min,max;
+         for (int i=0;i<NDIM;i++) {
+            min[i] = RMIN[i];
+            max[i] = RMAX[i];
+         }
+         data->functionOverGrid<calcGridQuantities>(ps,min,max,gridDims);
       }
 
 

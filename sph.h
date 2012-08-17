@@ -1360,15 +1360,8 @@ namespace Nsph {
          }
          p.f += p.fdrag;
       }
-      
-      inline void calcPorosityAndDrag2(Cparticle &p, vector<Cparticle *> &neighbrs,CglobalVars &g) {
-         calcPorosity2(p,neighbrs,g);
-#ifndef LIQ_DEM_ONE_WAY_COUPLE
-         calcDrag2(p,neighbrs,g);
-#endif
-      }
-
-inline vect calcSPHDrag(const Cparticle &p, const double &porosity, const vect dv) {
+     
+      inline vect calcSPHDrag(const Cparticle &p, const double &porosity, const vect dv) {
          const double vdiff = len(dv);
          vect fd = 0.0;
          if ((vdiff!=0)&&(porosity!=1)) {
@@ -1426,12 +1419,6 @@ inline void calcDrag3(Cparticle &p, vector<Cparticle *> &neighbrs,CglobalVars &g
       p.f += p.fdrag;
 }
 
-inline void calcPorosityAndDrag3(Cparticle &p, vector<Cparticle *> &neighbrs,CglobalVars &g) {
-         calcPorosity2(p,neighbrs,g);
-#ifndef LIQ_DEM_ONE_WAY_COUPLE
-         calcDrag3(p,neighbrs,g);
-#endif
-      }
 
    inline vect calcSPHDragFromVsAndPorosity(const Cparticle &p, const double &porosity, const vect dv) {
          const double vdiff = len(dv);
