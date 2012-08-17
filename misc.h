@@ -96,9 +96,25 @@ namespace Nmisc {
    void boundaryCylinder(vector<Cparticle> &ps,const vect &origin,const double radius,const double height);
    void sphCylinder(vector<Cparticle> &ps,const vect &origin);
 
-
+   /*
+    * Add regular grid of dem particles within the rectangular block defined by
+    * the points minRange and maxRange. The grid spacing is calculated using the 
+    * desired porosity
+    */
    void addGridDEMparticles(vector<Cparticle> &ps,const double minRange[NDIM],const double maxRange[NDIM],const double porosity);
+
+   /*
+    * Add dem particles randomly within the rectangle defined by the points
+    * minRange and maxRange. The number of particles inserted is calculated 
+    * using the desired porosity
+    */
    void addRandomDEMparticles(CdataLL *data,const double minRange[NDIM],const double maxRange[NDIM],const double porosity);
+
+   /*
+    * Add dem particles randomly within a vertical cylinder. The origin point, radius
+    * and height define the cylinder dimensions. The number of particles
+    * inserted is calculated using the desired porosity
+    */
    void addRandomDEMparticlesCyl(CdataLL *data,const vect origin,const double radius,const double height,int n);
 }
 
