@@ -46,7 +46,7 @@ const double REFD = 1000.0;
 //#define SPHBOUNDARY
 #define LIQ_DEM
 //#define LIQ_DEM_SEPARATE_DRAGS
-#define LIQ_DEM_DDDT_VER2
+//#define LIQ_DEM_DDDT_VER2
 #define _2D_DEM
 //#define LIQ_DEM_SIMPLE_DRAG
 //#define LIQ_DEM_ADDED_MASS
@@ -79,8 +79,8 @@ const double TIME_DROP_PARTICLE = 0.0;
 const int DAMPTIME = 0;
 const int OUTSTEP = 300;
 const int RESTART_EVERY_N_STEPS = 250;
-const int REINIT_DENS_EVERY_N_STEPS = 300000000;
-const int REINIT_DENS_AT_N_STEPS = 500;
+const int REINIT_DENS_EVERY_N_STEPS = 50;
+const int REINIT_DENS_AT_N_STEPS = 50000000;
 //#define REINIT_DENS_MLS
 
 

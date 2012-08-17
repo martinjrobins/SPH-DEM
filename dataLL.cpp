@@ -32,10 +32,8 @@ CdataLL::CdataLL(particleContainer &in_ps, CglobalVars &in_globals,bool opt): ps
       cout<<globals.procDomain[i]<<' ';
    }
 
-   // if prompted, init the sorted traverse order
-   if (opt) {
-      initTraverseOrder();
-   }
+   // init the sorted traverse order
+   initTraverseOrder(opt);
 
    // reset all data (neighbours, ghosts, mpi comms etc)
    reset();
@@ -345,17 +343,23 @@ void CdataLL::updateDomain() {
       dgmin[i] = dmin[i] + procGhostMax2H(coords);
       dgspace[i] = dspace[i] - procGhostMax2H(coords);
 #ifdef LIQ_DEM
-      liq_dgmin[i] = dmin[i] + max(procGhostMax2H(coords),LIQ_DEM_COUPLING_RADIUS);
+      liq_dgmin[i] = dmin[i] + procGhostMax2H(coords);
+      dem_dgmin[i] = dmin[i] + LIQ_DEM_COUPLING_RADIUS;
+      //liq_dgmin[i] = dmin[i] + max(procGhostMax2H(coords),LIQ_DEM_COUPLING_RADIUS);
       //dem_dgmin[i] = dmin[i] + 2.0*DEM_RADIUS;
-      dem_dgmin[i] = liq_dgmin[i];
-      liq_dgspace[i] = dspace[i] - max(procGhostMax2H(coords),LIQ_DEM_COUPLING_RADIUS);
+      //dem_dgmin[i] = liq_dgmin[i];
+      //liq_dgspace[i] = dspace[i] - max(procGhostMax2H(coords),LIQ_DEM_COUPLING_RADIUS);
+      liq_dgspace[i] = dspace[i] - procGhostMax2H(coords);
+      dem_dgspace[i] = dspace[i] - LIQ_DEM_COUPLING_RADIUS;
       //dem_dgspace[i] = dspace[i] - 4.0*DEM_RADIUS;
 #endif
       coords[i] = 2;
       dgspace[i] -= procGhostMax2H(coords);
 #ifdef LIQ_DEM
-      liq_dgspace[i] -= max(procGhostMax2H(coords),LIQ_DEM_COUPLING_RADIUS);
-      dem_dgspace[i] = liq_dgspace[i];
+      liq_dgspace[i] -= procGhostMax2H(coords);
+      //liq_dgspace[i] -= max(procGhostMax2H(coords),LIQ_DEM_COUPLING_RADIUS);
+      //dem_dgspace[i] = liq_dgspace[i];
+      dem_dgspace[i] -= LIQ_DEM_COUPLING_RADIUS;
 #endif
    }
    //cout <<"liq_dgmin = "<<liq_dgmin<<" liq_dgspace = "<<liq_dgspace<<" dem_dgmin = "<<dem_dgmin<<" dem_dgspace = "<<dem_dgspace<<endl;
@@ -376,7 +380,7 @@ void CdataLL::updateDomain() {
       }
       vectInt outCoords = static_cast<vectInt>((thisP->r-dmin)/dspace+1);
       if (any(outCoords>2)||any(outCoords<0)) {
-         cerr << "Particle out of range! Tag = "<<thisP->tag<<" iam = "<<thisP->iam<<" position = "<<thisP->r<<" velocityhat = "<<thisP->vhat<<" velocity = "<<thisP->v<<" density = "<<thisP->dens<<" total force = "<<thisP->f<<" pressure force = "<<thisP->fp<<" boundary force = "<<thisP->fb<<endl;
+         cerr << "Particle out of range! Tag = "<<thisP->tag<<" iam = "<<thisP->iam<<" position = "<<thisP->r<<" velocityhat = "<<thisP->vhat<<" velocity = "<<thisP->v<<" density = "<<thisP->dens<<" total force = "<<thisP->f<<" pressure force = "<<thisP->fp<<" boundary force = "<<thisP->fb<<" viscous force = "<<thisP->fv<<endl;
          deleteParticle(ppInfoLink,ppInfo);
          continue;
       }
@@ -920,9 +924,11 @@ void CdataLL::checkPinfos() {
 }
 
 
-void CdataLL::initTraverseOrder() {
+void CdataLL::initTraverseOrder(bool opt) {
    initPinfos();   
-   sortPInfos();
+   if (opt) {
+      sortPInfos();
+   } 
    checkPinfos();
 }
 
@@ -1197,10 +1203,12 @@ Cparticle *CdataLL::getParticleFromTag(int tag) {
          tagSortedParticlePointers[i->tag-1].tag = i->tag;
          tagSortedParticlePointers[i->tag-1].p = &(*i);
       }
+      cout <<"finished filling tagSortedParticlePointers"<<endl;
    }
    if (tagSortedParticlePointers[tag-1].tag != tag) {
-      cerr << "Error in CdataLL::getParticleFromTag(): the tag aint here!!!"<<endl;
-      exit(-1);
+      //cerr << "Error in CdataLL::getParticleFromTag(): looking for tag = "<<tag<<" but found "<<tagSortedParticlePointers[tag-1].tag<<". Tag not found :("<<endl;
+      return NULL;
+      //exit(-1);
    }
    return tagSortedParticlePointers[tag-1].p;
 }
@@ -1216,6 +1224,7 @@ CpInfo *CdataLL::getPinfoFromTag(int tag) {
          tagSortedPinfoPointers[i->p->tag-1].tag = i->p->tag;
          tagSortedPinfoPointers[i->p->tag-1].pInfo = &(*i);
       }
+      cout <<"finished filling tagSortedParticlePointers"<<endl;
    }
    if (tagSortedPinfoPointers[tag-1].tag != tag) {
       cerr << "Error in CdataLL::getPinfoFromTag(): the tag aint here!!!"<<endl;

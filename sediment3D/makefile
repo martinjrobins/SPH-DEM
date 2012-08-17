@@ -1,14 +1,15 @@
 CPPC = mpicxx
 CODEDIR = ..
-INCL = -I. -I/opt/sw/gsl-1.10/include -I/opt/sw/vtk-5.0.3/include/vtk-5.0 -I/usr/include/vtk-5.2 -I/usr/include/vtk-5.4 -I/usr/include/vtk-5.6 -I$(HOME)/include -I$(HOME)/include/vtk-5.1 -I$(HOME)/include/gsld -I$(CODEDIR)
+INCL = -I$(HOME)/usr/bin    -I. -I/opt/sw/gsl-1.10/include -I/opt/sw/vtk-5.0.3/include/vtk-5.0 -I/usr/include/vtk-5.2 -I/usr/include/vtk-5.8 -I/usr/include/vtk-5.4 -I$(HOME)/usr/include/vtk-5.8 -I$(HOME)/usr/include -I$(CODEDIR)
 CPPFLAGS =  -Wno-deprecated $(INCL) -O3
 #CPPFLAGS =  -Wno-deprecated $(INCL) -g
 #VTKLIBS = -lvtkIO -lvtkzlib -lvtkDICOMParser -lvtkpng -lvtkjpeg -lvtktiff -lvtksys -lvtkFiltering -lvtkCommon -lvtkexpat -lpthread -ldl
 #VTKLIBS = -lvtkIO -lvtkzlib -lvtkFiltering -lvtkCommon -lvtkexpat -lpthread -ldl
-VTKLIBS = -lvtkIO -lvtkFiltering -lvtkCommon -lpthread -ldl
+#VTKLIBS =  -lexpat -lxml2  -lvtkzlib -lvtklibxml2 -lvtkIO -lvtkFiltering -lvtkCommon -lpthread -ldl -lvtksys
+VTKLIBS =  -lexpat -lxml2  -lvtkIO -lvtkFiltering -lvtkCommon -lpthread -ldl -lvtksys
 FFTWLIBS = -lfftw3 -lm
 GSLLIBS = -lgsl -lgslcblas
-LIBS = -L/opt/sw/gsl-1.10/lib -L/opt/sw/vtk-5.0.3/lib $(LDFLAGS) $(VTKLIBS) $(GSLLIBS)  
+LIBS = -L$(HOME)/usr/lib -L$(HOME)/usr/lib/vtk-5.8 -L/usr/mpi/gcc/openmpi-1.4.3/lib64/ -L/opt/sw/gsl-1.10/lib -L/opt/sw/vtk-5.0.3/lib $(LDFLAGS) $(VTKLIBS) $(GSLLIBS)
 
 
 %.o : $(CODEDIR)/%.cpp

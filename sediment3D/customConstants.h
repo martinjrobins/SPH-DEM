@@ -57,8 +57,9 @@ const double DENS_DROP[NDIM] = {0,0,0};
 //#define SETTLE
 //#define SPHBOUNDARY
 #define LIQ_DEM
-#define LIQ_DEM_TEST
+//#define LIQ_DEM_TEST
 //#define LIQ_DEM_SEPARATE_DRAGS
+//#define HALF_COURANT
 //#define LIQ_DEM_SIMPLE_DRAG
 //#define LIQ_DEM_ADDED_MASS
 //#define LIQ_DEM_ONE_WAY_COUPLE
@@ -87,7 +88,7 @@ const double DEM_MIN_REDUCED_MASS = 0.5*DEM_MASS;
 
 const double VREF = 0.5*VISCOSITY*REYNOLDS_NUMBER/(POROSITY*DEM_RADIUS);
 //const double VMAX = sqrt(2*9.81*(1.0+0.5*(1-POROSITY)*(DEM_DENS-DENS)/DENS)*(RMAX[2]-RMIN[2]));
-const double VMAX = sqrt(2*9.81*(RMAX[2]-RMIN[2]));
+const double VMAX = 2.0*sqrt(2*9.81*(RMAX[2]-RMIN[2]));
 
 #ifdef SHORT_TIME
 const double MAXTIME = 0.15*L*HMULT/VREF;

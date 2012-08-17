@@ -366,6 +366,7 @@ namespace Nsph {
          calcB_MLS_iteration(dx,p.mass*vWab[0]/p.dens,matA,dxExt);
          for (int i=0;i<n;i++) {
             Cparticle *pn = neighbrs[i];
+            if ((pn->iam != sph)&&(pn->iam != sphBoundary)) continue;
             vect dx = p.r-pn->r;
             //double hav = 0.5*(p.h+pn->h);
             //vWab[i] = W(len(dx)/hav,hav);
@@ -653,6 +654,10 @@ namespace Nsph {
 #ifdef LIQ_DEM
 #ifdef LIQ_DEM_SEPARATE_DRAGS
          fv *= pa.porosity;
+#else
+#ifdef LIQ_DEM_TEST
+         fv *= pa.porosity;
+#endif
 #endif
 #endif
          pa.f += fv;
@@ -689,6 +694,7 @@ namespace Nsph {
 #ifdef DDENS_VARIANT
          vect prfac = 2.0*sqrt(pa.press*pb.press)/(pa.dens*pb.dens)*gradWa;
 #else
+
          vect prfac = (pa.pdr2*gradWa + pb.pdr2*gradWb);
 #endif
          vect antic = 0.01*abs(pa.pdr2+pb.pdr2)*kdwPowNeps;
@@ -723,11 +729,7 @@ namespace Nsph {
 #endif
 
          pa.fp += fp;
-#ifdef LIQ_DEM
-#ifdef LIQ_DEM_SEPARATE_DRAGS
-         fp *= pa.porosity;
-#endif
-#endif
+
          pa.f += fp;
       }
 
@@ -1146,15 +1148,25 @@ namespace Nsph {
 
       inline void calcDensity(Cparticle &p, vector<Cparticle *> &neighbrs,CglobalVars &g) {
 #ifdef REINIT_DENS_MLS
+         int n = neighbrs.size();
          double b0;
          vect bRest;
          vector<double> vWab;
          calcB_MLS(p,neighbrs,b0,bRest,vWab);
-         int n = neighbrs.size();
          p.dens = p.mass*W_MLS(0.0,vWab[0],b0,bRest);
+         int n_used = 0;
          for (int i=0;i<n;i++) {
             Cparticle *pn = neighbrs[i];
+            if ((pn->iam != sph)&&(pn->iam != sphBoundary)) continue;
             p.dens += pn->mass*W_MLS(p.r-pn->r,vWab[i+1],b0,bRest);
+            n_used++;
+         }
+         if (n_used < 4) {
+#ifdef LIQ_DEM
+            p.dens = p.porosity*DENS;
+#else
+            p.dens = DENS;
+#endif
          }
          //vWab.~vector<double>();
 #else
@@ -1264,24 +1276,7 @@ namespace Nsph {
          //p.ff -= p.vhat*(p.dporositydt/p.porosity + p.dddt/p.dens);
       }
 
-      inline void finalisePorosity(Cparticle &p, vector<Cparticle *> &neighbrs,CglobalVars &g) {
-         p.shepSum = p.mass*W(0,LIQ_DEM_COUPLING_RADIUS/2.0)/p.dens;
-         int n = neighbrs.size();
-         for (int i=0;i<n;i++) {
-            Cparticle *pn = neighbrs[i];
-            if ((pn->iam==sph)||(pn->iam==sphBoundary)) {
-               const double r = len(p.r-pn->r);
-               const double dvWab = pn->mass*W(r*(2.0/LIQ_DEM_COUPLING_RADIUS),LIQ_DEM_COUPLING_RADIUS/2.0)/pn->dens;
-               //const double dvWab = pn->mass*W(r/p.h,p.h)/pn->dens;
-               p.shepSum += dvWab;
-            }
-         }
-         //p.porosity = 1.0-p.porosity/p.shepSum;
-         p.porosity = 1.0-p.porosity;
-         if (p.porosity<0.37) p.porosity = 0.37;
-         //p.f -= p.vhat*(p.dporositydt/p.porosity + p.dddt/p.dens);
-         //p.ff -= p.vhat*(p.dporositydt/p.porosity + p.dddt/p.dens);
-      }
+      
 
 #ifdef LIQ_DEM_TEST
       inline void addGradPorosityTerm(Cparticle &p,CglobalVars &g) {
@@ -1291,7 +1286,7 @@ namespace Nsph {
 
 
 
-      inline void finalisePorosity2(Cparticle &p ,CglobalVars &g) {
+      inline void finalisePorosity(Cparticle &p ,CglobalVars &g) {
          p.porosity = 1.0-p.porosity;
          if (p.porosity<0.37) {
             p.porosity = 0.37;
@@ -1300,38 +1295,38 @@ namespace Nsph {
          }
       }
 
-      
 
-      inline void calcPorosity(Cparticle &p, vector<Cparticle *> &neighbrs,CglobalVars &g) {
-         if (p.shepSum > 0.0) return;
+      inline void initShepSum(Cparticle &p, CglobalVars &g) {
+         p.shepSum = 0.0;
+      }
+
+      inline void calcShepSum(Cparticle &p, vector<Cparticle *> &neighbrs,CglobalVars &g) {
          int n = neighbrs.size();
+         /*
+         p.shepSum = 0.0;
          for (int i=0;i<n;i++) {
             Cparticle *pn = neighbrs[i];
-            if ((pn->iam != sph)&&(pn->iam != sphBoundary)) continue;
-            const vect dx = pn->r-p.r;
-            const double r = len(dx);
-            const double q = r*(2.0/LIQ_DEM_COUPLING_RADIUS);
- 	    pn->porosity += calcPorosityIncr(W(q,LIQ_DEM_COUPLING_RADIUS/2.0));
- 	    pn->dporositydt -= DEM_VOL*dot((pn->vhat-p.vhat),dx)*F(q,LIQ_DEM_COUPLING_RADIUS/2.0);
+            if (pn->iam==boundary) continue;
+            const double r = len(p.r-pn->r);
+            p.shepSum += pn->mass*W(r*(2.0/LIQ_DEM_COUPLING_RADIUS),LIQ_DEM_COUPLING_RADIUS/2.0)/pn->dens;
+         }
+         */
+         double dv = p.mass/p.dens;
+         for (int i=0;i<n;i++) {
+            Cparticle *pn = neighbrs[i];
+            const double r = len(p.r-pn->r);
+            pn->shepSum += dv*W(r*(2.0/LIQ_DEM_COUPLING_RADIUS),LIQ_DEM_COUPLING_RADIUS/2.0);
          }
       }
 
-      inline void calcDrag(Cparticle &p, vector<Cparticle *> &neighbrs,CglobalVars &g) {
-         if (p.shepSum > 0.5) return;
-         calcFPIOnFluid(p,neighbrs,g);
-      }
 
-      
-
-      inline void calcPorosity2(Cparticle &p, vector<Cparticle *> &neighbrs,CglobalVars &g) {
+      inline void calcPorosity(Cparticle &p, vector<Cparticle *> &neighbrs,CglobalVars &g) {
          p.porosity = 0;
          p.dporositydt = 0;
          p.gradPorosity = 0;
          int n = neighbrs.size();
-         //p.shepSum = p.mass*W(0,LIQ_DEM_COUPLING_RADIUS/2.0)/p.dens;
          for (int i=0;i<n;i++) {
             Cparticle *pn = neighbrs[i];
-            if (pn->shepSum < 0.0) continue;
             const vect dx = p.r-pn->r;
             const double r = len(dx);
             const double q = r*(2.0/LIQ_DEM_COUPLING_RADIUS);
@@ -1342,41 +1337,31 @@ namespace Nsph {
                p.dporositydt -= DEM_VOL*dot((p.vhat-pn->vhat),dx)*F(q,LIQ_DEM_COUPLING_RADIUS/2.0);
                p.gradPorosity += DEM_VOL*dx*F(q,LIQ_DEM_COUPLING_RADIUS/2.0);
             }
-            //p.shepSum += dvWab;
          }
-         //p.porosity = 1.0-p.porosity/p.shepSum;
-         //if (p.porosity<0.37) p.porosity = 0.37;
       }
 
-      inline void calcDrag2(Cparticle &p, vector<Cparticle *> &neighbrs,CglobalVars &g) {
+      inline void calcDEMtoSPHDrag(Cparticle &p, vector<Cparticle *> &neighbrs,CglobalVars &g) {
          p.fdrag = 0.0;
+#ifdef _2D_
+#ifdef _2D_DEM
+         const double rdens = 1.0/p.dens;
+#else
+         const double rdens = (1.0/(2.0*DEM_RADIUS))/p.dens;
+#endif
+#else
+         const double rdens = 1.0/p.dens;
+#endif
+         
          int n = neighbrs.size();
          for (int i=0;i<n;i++) {
             Cparticle *pn = neighbrs[i];
-            if (pn->shepSum < 0.5) continue;
             const double r = len(p.r-pn->r);
-#ifdef _2D_
-#ifdef _2D_DEM
-            const double rdens = 1.0/p.dens;
-#else
-            const double rdens = (1.0/(2.0*DEM_RADIUS))/p.dens;
-#endif
-#else
-            const double rdens = 1.0/p.dens;
-#endif
             p.fdrag -= pn->mass*rdens*pn->fdrag*W(r*(2.0/LIQ_DEM_COUPLING_RADIUS),LIQ_DEM_COUPLING_RADIUS/2.0)/pn->shepSum;
          }
          p.f += p.fdrag;
       }
-      
-      inline void calcPorosityAndDrag2(Cparticle &p, vector<Cparticle *> &neighbrs,CglobalVars &g) {
-         calcPorosity2(p,neighbrs,g);
-#ifndef LIQ_DEM_ONE_WAY_COUPLE
-         calcDrag2(p,neighbrs,g);
-#endif
-      }
-
-inline vect calcSPHDrag(const Cparticle &p, const double &porosity, const vect dv) {
+     
+      inline vect calcSPHDrag(const Cparticle &p, const double &porosity, const vect dv) {
          const double vdiff = len(dv);
          vect fd = 0.0;
          if ((vdiff!=0)&&(porosity!=1)) {
@@ -1438,42 +1423,74 @@ inline void calcDrag3(Cparticle &p, vector<Cparticle *> &neighbrs,CglobalVars &g
       p.f += p.fdrag;
 }
 
-inline void calcPorosityAndDrag3(Cparticle &p, vector<Cparticle *> &neighbrs,CglobalVars &g) {
-         calcPorosity2(p,neighbrs,g);
-#ifndef LIQ_DEM_ONE_WAY_COUPLE
-         calcDrag3(p,neighbrs,g);
+
+   inline vect calcSPHDragFromVsAndPorosity(const Cparticle &p, const double &porosity, const vect dv) {
+         const double vdiff = len(dv);
+         vect fd = 0.0;
+         if ((vdiff!=0)&&(porosity!=1)) {
+            double beta;
+#ifdef LIQ_DEM_SIMPLE_DRAG
+            fd = 6.0*PI*VISCOSITY*DEM_RADIUS*dv;
+            fd *= (1-porosity)/DEM_VOL;
+#else
+#ifdef LIQ_DEM_ERGUN_DRAG
+            if (porosity <= 0.8) {
+               beta = 150.0*(pow(1.0-porosity,2)/porosity)*(VISCOSITY*DENS/pow(2.0*DEM_RADIUS,2)) + 1.75*vdiff*(1.0-porosity)*DENS/(2.0*DEM_RADIUS);
+            } else {
+               const double A = PI*pow(DEM_RADIUS,2);
+               //const double Re = (2.0*DEM_RADIUS/VISCOSITY)*p.porosity*vdiff;
+               const double Re = (2.0*DEM_RADIUS/VISCOSITY)*vdiff*porosity;
+               const double dragGamma = 3.7 - 0.65*exp(-pow(1.5-log10(Re),2)/2.0);
+               const double C = pow(0.63 + 4.8/pow(Re,0.5),2);
+               beta = (3.0/4.0)*C*(DENS/(2.0*DEM_RADIUS))*(1.0-porosity)*vdiff*pow(porosity,-2.7);
+            }
+            fd = beta*dv;
+#else
+            const double A = PI*pow(DEM_RADIUS,2);
+            //const double Re = (2.0*DEM_RADIUS/VISCOSITY)*p.porosity*vdiff;
+            const double Re = (2.0*DEM_RADIUS/VISCOSITY)*vdiff;
+            const double dragGamma = 3.7 - 0.65*exp(-pow(1.5-log10(Re),2)/2.0);
+            const double C = pow(0.63 + 4.8/pow(Re,0.5),2);
+            fd = (1.0/2.0)*DENS*A*C*vdiff*dv*pow(porosity,2-dragGamma);
+            fd *= (1-porosity)/DEM_VOL;
 #endif
-      }
-
-
-      inline void interpolatePorosityAndH(Cparticle &p, vector<Cparticle *> &neighbrs,CglobalVars &g) {
-         p.porosity = 0;
-         //p.hErr = 0;
-         double sum = 0;
-         int n = neighbrs.size();
-         for (int i=0;i<n;i++) {
-            Cparticle *pn = neighbrs[i];
-            if (pn->iam == dem) continue;
-            double r = len(p.r-pn->r);
-            double dvWab = pn->mass*W(r/pn->h,pn->h)/pn->dens;
-            p.porosity += pn->porosity*dvWab;          
-            //p.hErr += pn->h*dvWab;          
-            sum += dvWab;
+#endif
+            //if (isnan(fd[0])) {
+            //   cout << "found nan in calcSPHDrag: porosity = "<<porosity<<" Re = "<<Re<<" vdiff = "<<vdiff<<" dragGamma = "<<dragGamma<<endl;
+            //}
          }
-         if (sum>0.5) {
-            p.porosity /= sum;
-            //p.hErr /= sum;
-         }
-         p.shepSum = sum;
-         //p.porosity = p.mass*W(0,p.hErr);
-         //for (int i=0;i<n;i++) {
-         //   Cparticle *pn = neighbrs[i];
-         //   double r = len(p.r-pn->r);
-         //   if (pn->iam != dem) continue;
-         //   p.porosity += pn->mass*W(r/p.hErr,p.hErr);          
-         //}
-         //p.porosity = 1.0 - p.porosity/DEM_DENS;
+         return fd/p.dens;
+   }
+
+   inline void calcSPHDrag(Cparticle &p, vector<Cparticle *> &neighbrs,CglobalVars &g) {
+      if (p.porosity==0) {
+         p.fdrag = 0.0;
+         return;
       }
+      vect epsilonV = 0.0;
+      int n = neighbrs.size();
+      for (int i=0;i<n;i++) {
+         Cparticle *pn = neighbrs[i];
+         //if (pn->shepSum < 0.5) continue;
+         const vect dx = pn->r-p.r;
+         const double r = len(dx);
+         const double q = r*(2.0/LIQ_DEM_COUPLING_RADIUS);
+         const double Wa = W(q,LIQ_DEM_COUPLING_RADIUS/2.0);
+ 	 epsilonV += pn->v*calcPorosityIncr(Wa);
+      }
+      const vect vs = epsilonV/p.porosity;
+      double porosity;
+      porosity = 1.0-p.porosity;
+      if (porosity<0.37) porosity = 0.37;
+      p.fdrag = calcSPHDragFromVsAndPorosity(p,porosity,vs-p.v);
+#ifdef LIQ_DEM_VARIABLE_TIMESTEP
+      const double dv2 = len2(vs-p.v);
+      if (dv2 != 0) 
+         g.newDt = min(g.newDt,0.1*sqrt(dv2/len2(p.fdrag)));
+#endif
+      p.f += p.fdrag;
+   }
+
       
       inline vect demNormal(const double overlap, const double overlap_dot, const vect normal) {
 #ifdef HERTZ
@@ -1555,7 +1572,7 @@ inline void calcPorosityAndDrag3(Cparticle &p, vector<Cparticle *> &neighbrs,Cgl
          return 0,0,0;
       }
 
-      inline vect calcParticleDrag(Cparticle &p, const vect &ff, const vect &fpfvfb, const vect &fdrag, const vect &fvel, const double &fdens, const vect &fvort) {
+      inline vect calcParticleDrag(Cparticle &p, const vect &ff, const vect &fdrag, const vect &fvel, const double &fdens, const vect &fvort) {
          double pVol = p.mass/DEM_DENS;
          vect dv = p.porosity*(fvel-p.vhat);
          const double vdiff = len(dv);
@@ -1610,7 +1627,7 @@ inline void calcPorosityAndDrag3(Cparticle &p, vector<Cparticle *> &neighbrs,Cgl
          if (p.porosity==0.0) {
             cout << "porosity zero for a dem particle experiencing drag. p.shepSum= "<<p.shepSum<<endl;
          }
-         return (DENS*DEM_VOL*p.porosity/pmass)*fpfvfb + (DENS/pmass)*fd;
+         return (DENS/pmass)*fd;
       }
 
 
@@ -1716,9 +1733,16 @@ inline void calcPorosityAndDrag3(Cparticle &p, vector<Cparticle *> &neighbrs,Cgl
             const double dvWab = dvol*Wab;
             //fp += dvWab*(pn->fp+pn->fb);
 #ifdef LIQ_DEM_SEPARATE_DRAGS
-            fpfb += dvWab*(pn->fp+pn->fb)/pn->porosity;
+            fpfb += pn->mass*Wab*(pn->fp+pn->fb)/pn->porosity;
+            fv += pn->mass*Wab*(pn->fv)/pn->porosity;
 #else
-            fpfb += dvWab*(pn->fp+pn->fb);
+#ifdef LIQ_DEM_TEST
+            fpfb += pn->mass*Wab*(pn->fp+pn->fb)/pn->porosity;
+            fv += pn->mass*Wab*(pn->fv)/pn->porosity;
+#else
+            fpfb += pn->mass*Wab*(pn->fp+pn->fb);
+            fv += pn->mass*Wab*(pn->fv);
+#endif
 #endif
             fv += dvWab*(pn->fv);
             ff += dvWab*(pn->f);
@@ -1746,9 +1770,24 @@ inline void calcPorosityAndDrag3(Cparticle &p, vector<Cparticle *> &neighbrs,Cgl
             p.porosity *= rsum;
             p.fb = fpfb;
             p.fv = fv;
-            p.fdrag = calcParticleDrag(p,ff,fv+fpfb,fdrag,p.fvel,fdens,fvort);
-            //cout <<"time = "<<g.time<<"fpfvfb = "<<fpfvfb<<" drag = "<<p.fdrag<<" pvel = "<<p.vhat[2]<<" fvel = "<<p.fvel[2]<<endl;
+#ifdef LIQ_DEM_TEST
+            p.fdrag = calcParticleDrag(p,ff,fdrag,p.fvel,fdens,fvort);
+	    const vect dvFdrag = p.fdrag;
+            p.f += (DEM_VOL/p.mass)*(fv+fpfb) + p.fdrag;
+#else
+	    const vect dvFdrag = calcParticleDrag(p,ff,fdrag,p.fvel,fdens,fvort);
+            p.fdrag = (DEM_VOL/p.mass)*(fv+fpfb) + dvFdrag;
             p.f += p.fdrag;
+#endif
+
+
+#ifdef LIQ_DEM_VARIABLE_TIMESTEP
+	    const double dv2 = len2(p.vhat-p.fvel);
+	    if (dv2 != 0) 
+               g.demDt = min(g.demDt,0.1*sqrt(dv2/len2(dvFdrag)));
+#endif
+
+            //cout <<"time = "<<g.time<<"fpfvfb = "<<fpfvfb<<" drag = "<<p.fdrag<<" pvel = "<<p.vhat[2]<<" fvel = "<<p.fvel[2]<<endl;
          }
       }
 
@@ -1791,6 +1830,9 @@ inline void calcPorosityAndDrag3(Cparticle &p, vector<Cparticle *> &neighbrs,Cgl
       inline bool ifDem(Cparticle &p) {
          return p.iam == dem;
       }
+      inline bool ifDemOrGhost(Cparticle &p) {
+         return (p.iam == dem)||(p.iam == ghost);
+      }
       inline bool ifDemOrDemBoundary(Cparticle &p) {
          return p.iam == dem;
       }
@@ -1815,13 +1857,22 @@ inline void calcPorosityAndDrag3(Cparticle &p, vector<Cparticle *> &neighbrs,Cgl
       inline bool ifSphOrSphBoundary(Cparticle &p) {
          return (p.iam==sph)||(p.iam==sphBoundary);
       }
+      inline bool ifSphOrSphBoundaryOrImmersedDem(Cparticle &p) {
+         return (p.iam==sph)||(p.iam==sphBoundary);
+      }
       inline bool ifSphOrSphBoundaryOrDem(Cparticle &p) {
+         return (p.iam==sph)||(p.iam==sphBoundary)||(p.iam==dem);
+      }
+      inline bool ifSphOrSphBoundaryOrImmersedDemOrDem(Cparticle &p) {
          return (p.iam==sph)||(p.iam==sphBoundary)||(p.iam==dem);
       }
       //inline bool ifNotBoundary(Cparticle &p) {
       //   return (p.iam!=boundary);
       //}
       inline bool ifSphOrSphBoundaryOrGhost(Cparticle &p) {
+         return (p.iam==sph)||(p.iam==sphBoundary)||(p.iam==ghost);
+      }
+      inline bool ifSphOrSphBoundaryOrImmersedDemOrGhost(Cparticle &p) {
          return (p.iam==sph)||(p.iam==sphBoundary)||(p.iam==ghost);
       }
       inline bool ifSphOrSphBoundaryOrDemOrGhost(Cparticle &p) {

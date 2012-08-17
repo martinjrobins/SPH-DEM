@@ -307,16 +307,13 @@ void CdataLL::neighboursUsing(vector<Cparticle> &_ps) {
 
 
 template <void theFunct(Cparticle &,Cparticle &,CglobalVars &)>
-void CdataLL::functionOverGrid(vector<Cparticle> &outPs,vectInt &gridDimN) {
-   //TODO: I've broken this so that it won't work in parallel anymore. To fix just replace newRmax and min with rmax and rmin
-   vect newRmax;
-   vect newRmin;
+void CdataLL::functionOverGrid(vector<Cparticle> &outPs,vect min,vect max,vectInt &gridDimN) {
+   
+   gridDimN = (max-min)/PSEP;
+   vect newGridSep = 0.0;
    for (int i=0;i<NDIM;i++) {
-      newRmax = RMAX[i];
-      newRmin = RMIN[i];
+      if (gridDimN[i]!=0) newGridSep[i] = (max[i]-min[i])/gridDimN[i];    
    }
-   gridDimN = (newRmax-newRmin)/GRIDSEP;
-   vect newGridSep = (newRmax-newRmin)/gridDimN;
    gridDimN += 1;
    int gridN = product(gridDimN); 
    outPs.resize(gridN);
@@ -329,16 +326,16 @@ void CdataLL::functionOverGrid(vector<Cparticle> &outPs,vectInt &gridDimN) {
                for (int k=0;k<gridDimN[2];k++) {
                   int kOffset = k*gridDimN[0]*gridDimN[1];
                   outPs[kOffset+jOffset+i].r = i*newGridSep[0],j*newGridSep[1],k*newGridSep[2];
-                  outPs[kOffset+jOffset+i].r += newRmin; 
+                  outPs[kOffset+jOffset+i].r += min; 
                }
             } else {
                outPs[jOffset+i].r = i*newGridSep[0],j*newGridSep[1];
-               outPs[jOffset+i].r += newRmin; 
+               outPs[jOffset+i].r += min; 
             }
          }
       } else {
          outPs[i].r = i*newGridSep[0];
-         outPs[i].r += newRmin; 
+         outPs[i].r += min; 
       } 
    }
    neighboursUsing<theFunct>(outPs);

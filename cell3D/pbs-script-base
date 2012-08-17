@@ -5,6 +5,8 @@
 #PBS -m bea
 # specify your email address
 #PBS -M martinjrobins@gmail.com
+
+#PBS -koe
 # By default, PBS scripts execute in your home directory, not the 
 # directory from which they were submitted. The following line 
 # places you in the directory from which the job was submitted.  

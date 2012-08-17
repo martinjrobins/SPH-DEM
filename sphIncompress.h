@@ -34,7 +34,12 @@ class CsphIncompress {
       }
 
       void renderToGrid(vector<Cparticle> &ps,vectInt &gridDims) {
-         data->functionOverGrid<calcGridQuantities>(ps,gridDims);
+         vect min,max;
+         for (int i=0;i<NDIM;i++) {
+            min[i] = RMIN[i];
+            max[i] = RMAX[i];
+         }
+         data->functionOverGrid<calcGridQuantities>(ps,min,max,gridDims);
       }
 
 
@@ -60,6 +65,15 @@ class CsphIncompress {
 #endif
 
 #ifdef LIQ_DEM
+      static double readShepSum(Cparticle &p) {
+         return p.shepSum;
+      }
+      static void writeShepSum(Cparticle &p,double shepSum) {
+         p.shepSum = shepSum;
+      }
+      static void sumShepSum(Cparticle &p,double shepSum) {
+         p.shepSum += shepSum;
+      }
       static double readPorosity(Cparticle &p) {
          return p.porosity;
       }
@@ -695,7 +709,7 @@ class CsphIncompress {
 #ifdef CHECK_FOR_NAN
          vect oldv = p.v;
 #endif
-         if ((p.iam == sph)||(p.iam==dem)) {
+         if ((p.iam == sph)||(p.iam==dem)||(p.iam==immersedDem)) {
             p.v = p.v0 + dt*p.f;
             p.vhat = p.vhat0 + dt*p.f;
             if (g.time < DAMPTIME) {
@@ -867,6 +881,15 @@ class CsphIncompress {
          //p.press = PRB*(pow(p.dens/REFD,7) - 0.99);
          //p.press = pow(SPSOUND,2)*p.dens;
          p.pdr2 = p.press/(p.dens*p.dens);
+#ifdef LIQ_DEM
+#ifdef LIQ_DEM_SEPARATE_DRAGS
+         p.pdr2 *= p.porosity;
+#else
+#ifdef LIQ_DEM_TEST
+         p.pdr2 *= p.porosity;
+#endif
+#endif
+#endif
 #ifdef LIQ_DEM_DENS_NORMAL
          p.pdr2 /= p.porosity*p.porosity;
 #endif

@@ -14,7 +14,7 @@ typedef vect my2dMatrix[NDIM];
  * enum type of different particles types
  * used for the iam member of the Cparticle type
  */
-enum iamTypes {sph, sphBoundary, immovable, boundary,ghost,boundaryobj1,boundaryobj2,boundaryobj3,boundaryobj4,boundaryobj5,boundaryobj6,dem,demBoundary};
+enum iamTypes {sph, sphBoundary, immovable, boundary,ghost,boundaryobj1,boundaryobj2,boundaryobj3,boundaryobj4,boundaryobj5,boundaryobj6,dem,demBoundary,immersedDem};
 
 
 class Cparticle;
@@ -293,6 +293,19 @@ class Cparticle {
    vect thisRInc;
    double dRhoKernel;
    double dMassDiff;
+#endif
+#ifdef TEST_VISC
+   vect origPos;
+#endif
+#ifdef DEFORMATION_MATRIX
+   vectTensor defMat;
+   vectTensor RCGMat;
+   double eval1,eval2;
+   vect evec1;
+#ifdef HALLER_LCS
+   vect grad_eval1;
+   double Z_surface;
+#endif
 #endif
 
    double eViscF,deViscFdt;

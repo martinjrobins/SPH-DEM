@@ -53,7 +53,6 @@ int main(int argc, char *argv[]) {
          p.v[2] += gsl_ran_gaussian(rng,VREF/20);
          p.vhat = p.v;
          p.iam = sph;
-         p.alpha = ALPHA;
          ps.push_back(p);
       }
    }
@@ -74,41 +73,24 @@ int main(int argc, char *argv[]) {
       pps.push_back(ps[i]);
    }
    Nmisc::splitDomain(pps,split,vps,vprocDomain,vprocNeighbrs);
-
-
-
-   //CdataLL *data = new CdataLL(ps,globals);
-   //CsphIncompress sph(data);
-   //CcustomOutput customOutput(data);
-   //CcustomSim customSim(data,globals.time);
-
-
    cout << "Opening files for writing..."<<endl;
+
    Cio_data_vtk ioFile(filename.c_str(),&globals);
-   cout << "Calculating Output stuff.."<<endl;
-   //sph.calcOutputVars();
-   //customOutput.calcOutput(0,&customSim,&ioFile);
+
    cout << "Writing Restart data to file..."<<endl;
    int nProc = product(split);
    for (int i=0;i<nProc;i++) {
       globals.mpiRank = i;
+      for (int j=0;j<NDIM*2;j++)
+         globals.procDomain[j] = vprocDomain[i][j];
+      globals.procNeighbrs = vprocNeighbrs[i];
       ioFile.setFilename(filename.c_str(),&globals);
       ioFile.writeGlobals(0,&globals);
       ioFile.writeRestart(0,vps[i],&globals);
+      ioFile.writeDomain(0,&globals);
       globals.mpiRank = 0;
    }
-   cout << "Writing Global data to file..."<<endl;
-   //ioFile.writeGlobals(0,&globals);
-   ioFile.writeDomain(0,vprocDomain,vprocNeighbrs);
 
-
-   //Write restart file for John
-   /*ofstream fo("restartJohn.dat");
-   fo <<"h = "<<H<<" mass = "<<ps[0].mass<<" dens = "<<ps[0].dens<<" psep = "<<PSEP<<" Re = "<<REYNOLDS_NUMBER<<" kinematic viscosity = "<<VISCOSITY<<" n = "<<ps.size()<<endl;
-   fo <<"r_x r_y v_x v_y flag(0=fluid,1=boundary)"<<endl;
-   for (int i=0;i<ps.size();i++) {
-      fo << ps[i].r[0]<<' '<<ps[i].r[1]<<' '<<ps[i].v[0]<<' '<<ps[i].v[1]<<' '<<ps[i].iam<<endl;
-   }*/
 
 }
 

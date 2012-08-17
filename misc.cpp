@@ -296,6 +296,10 @@ void Nmisc::boundaryPlane(vector<Cparticle> &ps,vect side1,vect side2,vect neigh
 }
 
 void Nmisc::boundaryCircle(vector<Cparticle> &ps,const vect &origin,const double radiusMin,const double radiusMax,const vect normal) {
+   boundaryCircle(ps,origin,radiusMin,radiusMax,normal,1,1);
+}
+
+void Nmisc::boundaryCircle(vector<Cparticle> &ps,const vect &origin,const double radiusMin,const double radiusMax,const vect normal,bool inner_corner,bool outer_corner) {
    Cparticle p;
    const double dRadius = radiusMax-radiusMin;
    const double NR = ceil(dRadius/(BFAC*PSEP));
@@ -323,18 +327,18 @@ void Nmisc::boundaryCircle(vector<Cparticle> &ps,const vect &origin,const double
 #ifdef _3D_
          p.norm3 = cross(newN,p.norm1);
 #endif
-         if (i==NR) {
+         p.norm2 = 0,0,0;
+         if (outer_corner&&(i==NR)) {
             p.norm2[0] = -cos(theta);
             p.norm2[1] = -sin(theta);
             p.norm2[2] = 0;
             p.concave = 1;
-         } else if ((i==0)&&(radiusMin>0)) {
+         } 
+         if (inner_corner&&(i==0)&&(radiusMin>0)) {
             p.norm2[0] = -cos(theta);
             p.norm2[1] = -sin(theta);
             p.norm2[2] = 0;
             p.concave = 1;
-         } else {
-            p.norm2 = 0,0,0;
          }
          ps.push_back(p);
       }
@@ -371,6 +375,46 @@ void Nmisc::boundaryCylinderNoTopBottom(vector<Cparticle> &ps,const vect &origin
          p.norm3[2] = 0;
          p.norm2 = 0,0,0;
          ps.push_back(p);
+      }
+   }
+}
+
+void Nmisc::sphBoundaryCylinderNoTopBottom(vector<Cparticle> &ps,const vect &origin,const double radius,const double height) {
+   Cparticle p;
+   const double NH = ceil(height/(PSEP));
+   const double HPSEP = height/NH;
+   const vect n(1,0,0);
+   const vect nt(0,0,1);
+   double nc[3];
+   double tpsep[3];
+   for (int k=0;k<3;k++) {
+      nc[k] = ceil(2*PI*(radius+k*PSEP)/PSEP);
+      if (nc[k] == 0) nc[k]++;
+      tpsep[k] = 2.0*PI/nc[k];
+   }
+   for (int i=0;i<NH;i++) {
+      for (int k=0;k<3;k++) {
+      for (int j=0;j<nc[k];j++) {
+         const double theta = j*tpsep[k];
+         vect newN;
+         newN[0] = n[0]*cos(theta)-n[1]*sin(theta);
+         newN[1] = n[0]*sin(theta)+n[1]*cos(theta);
+         p.r = (radius+k*PSEP)*newN + nt*i*HPSEP + origin;
+         p.tag = ps.size()+1;
+         p.dens = DENS;
+         p.mass = pow(BFAC*PSEP,NDIM)*DENS;
+         p.h = H;
+         p.v = 0,0,0;
+         p.iam = sphBoundary;
+         p.norm1[0] = -cos(theta);
+         p.norm1[1] = -sin(theta);
+         p.norm1[2] = 0;
+         p.norm3[0] = sin(theta);
+         p.norm3[1] = -cos(theta);
+         p.norm3[2] = 0;
+         p.norm2 = 0,0,0;
+         ps.push_back(p);
+      }
       }
    }
 }
@@ -485,84 +529,15 @@ void Nmisc::pairDoubling(CdataLL *data,Sgi::slist<CpairData> &pairData,vector<of
    if (data->globals.mpiRank==0) cout <<"\t\tThere are now "<<pairData.size()<<" pairs being tracked."<<endl;
 }
  
-inline void calcParticleLyap(Cparticle &p, vector<Cparticle *> &neighbrs,CglobalVars &g,CdataLL &d2) {
-   Array<double,2> coeff(NDIM,NDIM);
-
-   double chisq;
-
-   int n = neighbrs.size();
-
-   gsl_matrix *X = gsl_matrix_alloc(n,NDIM);
-   gsl_vector *y = gsl_vector_alloc(n);
-
-   gsl_vector *c = gsl_vector_alloc(NDIM);
-   gsl_matrix *cov = gsl_matrix_alloc(NDIM,NDIM);
-            
-   gsl_multifit_linear_workspace *work = gsl_multifit_linear_alloc(n,NDIM);
-
-   vector<vect> dx2(n);
-   for (int i=0;i<n;i++) {
-      Cparticle *pn = neighbrs[i];
-      vect dx = pn->r-p.r;
-      Cparticle *pn2 = d2.getParticleFromTag(pn->tag);
-      for (int j=0;j<NDIM;j++) {
-         if (PERIODIC[j]) {
-            if (abs(pn2->r[j]-p.r[j]+RMAX[j]-RMIN[j])<abs(pn2->r[j]-p.r[j])) {
-               (dx2[i])[j] = pn2->r[j]-p.r[j]+RMAX[j]-RMIN[j];
-            } else if (abs(pn2->r[j]-p.r[j]-RMAX[j]+RMIN[j])<abs(pn2->r[j]-p.r[j])) {
-               (dx2[i])[j] = pn2->r[j]-p.r[j]-RMAX[j]+RMIN[j];
-            } else {
-               (dx2[i])[j] = pn2->r[j]-p.r[j];
-            }
-         } else {
-            (dx2[i])[j] = pn2->r[j]-p.r[j];
-         }
-         gsl_matrix_set(X,i,j,dx[j]);
-      }
-   }
-
-   for (int j=0;j<NDIM;j++) {
-      for (int i=0;i<n;i++) {
-         gsl_vector_set(y,i,(dx2[i])[j]);
-      }
-            
-      gsl_multifit_linear(X,y,c,cov,&chisq,work);
-
-      for (int i=0;i<NDIM;i++) {
-         coeff(i,j) = gsl_vector_get(c,i);
-      }
-   }
-   gsl_multifit_linear_free(work);
-   gsl_vector_free(c);
-   gsl_vector_free(y);
-   gsl_matrix_free(X);
-   gsl_matrix_free(cov);
-
-   //TODO: this is 2d!, change to 3d!
-   // multiply coeff by its transverse
-   double aa,bb,cc,dd;
-   aa = pow(coeff(0,0),2) + pow(coeff(1,0),2);
-   bb = coeff(0,0)*coeff(0,1) + coeff(1,0)*coeff(1,1);
-   cc = bb;
-   dd = pow(coeff(0,1),2) + pow(coeff(1,1),2);
-
-   //calculate eigenvalues of resultant matrix
-   double eigen[2];
-   eigen[0] = (aa+dd + sqrt(pow(aa+dd,2) - 4.0*(aa*dd-bb*cc)))/2.0;
-   eigen[1] = (aa+dd - sqrt(pow(aa+dd,2) - 4.0*(aa*dd-bb*cc)))/2.0;
-   
-   double DLE = 1.0/(2.0*abs(d2.globals.time - g.time))*log(max(eigen[0],eigen[1]));
-   
-   p.tmp = DLE;
-}
-           
-
+#ifdef DEFORMATION_MATRIX
 
 void Nmisc::calcLyap(CdataLL *d1,CdataLL *d2,Cio_data_vtk *io,double dt) {
    vector<double> ftle,bftle;
    ftle.resize(d1->getParticles()->size());
    bftle.resize(d2->getParticles()->size());
 
+   d2->globals.time = dt;
+   d1->globals.time = 0.0;
    d1->neighboursGroup<CdataLL,calcParticleLyap,ifSph>(*d2);
    particleContainer *p1 = d1->getParticles();
    int n = p1->size();
@@ -590,7 +565,7 @@ void Nmisc::calcLyap(CdataLL *d1,CdataLL *d2,Cio_data_vtk *io,double dt) {
    io->writeAux(d1->globals.outstep,*(d1->getParticles()),ftle,outName.c_str(),&(d1->globals));
    //io->writeAux(d2->globals.outstep,*(d2->getParticles()),bftle,"bftle",&(d2->globals));
 }
-
+#endif
 
 void Nmisc::calcPoincare(CdataLL *d1,CdataLL *d2,Cio_data_vtk *io,int numParticles,int numPeriods) {
    particleContainer ps;

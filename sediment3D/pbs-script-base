@@ -1,0 +1,19 @@
+# request the queue (enter the possible names, if omitted, serial is the default)
+# request 1 node
+# PBS -l nodes=1:ppn=1
+#PBS -l nodes=1:ppn=1
+##PBS -l cput=800:00:00        
+#PBS -l walltime=800:00:00
+# mail is sent to you when the job starts and when it terminates or aborts
+#PBS -m bea
+# specify your email address
+#PBS -M martinjrobins@gmail.com
+#PBS -ko
+# By default, PBS scripts execute in your home directory, not the 
+# directory from which they were submitted. The following line 
+# places you in the directory from which the job was submitted.  
+cd $PBS_O_WORKDIR
+# run the program
+export LD_LIBRARY_PATH=/usr/mpi/gcc/openmpi-1.4.3/lib64/:$LD_LIBRARY_PATH:/usr/mpi/gcc/openmpi-1.4.3/lib64/
+export PATH=/usr/mpi/gcc/openmpi-1.4.3/bin:$PATH
+./run initData 0 results

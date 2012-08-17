@@ -196,9 +196,9 @@ def runSimulation(newDir,name):
    currDir = os.getcwd()
    os.chdir(newDir)
    os.system("./setup initData")
-   #shutil.copy(currDir+"/pbs-script-base",newDir)
-   #writePbsFile(name)
-   #os.system("qsub pbs-script")
+   shutil.copy(currDir+"/pbs-script-base",newDir)
+   writePbsFile(name)
+   os.system("qsub pbs-script")
    #os.system("nohup nice -n 19 ./run initData 0 results &")
    os.chdir(currDir)
 

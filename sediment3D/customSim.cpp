@@ -24,6 +24,22 @@ inline void freezeParticles(Cparticle &p,CglobalVars &g) {
 
 }
 
+inline void sumDragForces(Cparticle &p,CglobalVars &g) {
+   if (p.iam==sph) {
+      for (int i=0;i<3;i++) {
+#ifdef LIQ_DEM_SEPARATE_DRAGS
+         g.custom[i] += p.mass*p.fdrag[i]-p.mass*(1.0-p.porosity)*(p.fp[i]+p.fb[i]+p.fv[i])/p.porosity;
+#else
+         g.custom[i] += p.mass*p.fdrag[i];
+#endif
+      }
+   } else if (p.iam==dem) {
+      for (int i=3;i<6;i++) {
+         g.custom[i] += p.mass*p.fdrag[i-3];
+      }
+   }
+}
+
 inline void setFluidVel(Cparticle &p, vector<Cparticle *> &neighbrs,CglobalVars &g) {
       double sum = 0;
       vect pvel = 0.0;
@@ -79,6 +95,10 @@ void CcustomSim::beforeMiddle(double newTime) {
 }
 
 void CcustomSim::beforeEnd(double newTime) { 
+   for (int i=0;i<6;i++) {
+      data->globals.custom[i] = 0.0;
+   }
+   data->traverse<sumDragForces,Nsph::ifSphOrDem>();
    data->traverse<addGravity,Nsph::ifDem>();
    data->traverse<addCustomBoundaries,Nsph::ifDem>();
    if (data->globals.time <= TIME_DROP_PARTICLE) {

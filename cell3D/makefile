@@ -30,10 +30,12 @@ setup: $(INCOMPRESS) setup.o
 	$(CPPC) $(CPPFLAGS) $(LIBS) -o setup $(INCOMPRESS) setup.o $(LIBS)
 post: $(INCOMPRESS) post.o
 	$(CPPC) $(CPPFLAGS) -o post $(INCOMPRESS) post.o $(LIBS)
+calcPost: $(INCOMPRESS) calcPost.o
+	$(CPPC) $(CPPFLAGS) -o calcPost $(INCOMPRESS) calcPost.o $(LIBS)
 setup.o: setup.cpp 
 	$(CPPC) $(CPPFLAGS) -c setup.cpp -o setup.o
 createPVD: createPVD.o
 	$(CPPC) $(CPPFLAGS) $(LIBS) -o createPVD createPVD.o
 
 clean:
-	rm *.o run setup createPVD post
+	rm *.o run setup createPVD post calcPost

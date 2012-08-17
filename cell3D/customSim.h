@@ -13,13 +13,14 @@ class CcustomSim : public CcustomSimBase {
       CcustomSim(CdataLL *_data,double _time): CcustomSimBase(_data,_time) {
          start = false;
          doOnce = false;
+         doOnce2 = false;
       }
       
       void beforeMiddle(double newTime);
       void beforeEnd(double newTime);
       void afterEnd(double newTime);
    private:
-      bool start,doOnce;
+      bool start,doOnce,doOnce2;
 };
 
 
