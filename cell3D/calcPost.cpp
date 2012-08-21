@@ -44,7 +44,7 @@ inline void calcPorosityAndVelocity(Cparticle &p, vector<Cparticle *> &neighbrs,
 
 inline void findCOMs(Cparticle &p, CglobalVars &g, vect* &com) {
    for (int i=0;i<5;i++) {
-      if (len2(p.vhat)<pow(VREF/pow(10,i+1),2)) {
+      if (len2(p.v)<pow(VREF/pow(10,i+1),2)) {
          const double r = sqrt(p.r[0]*p.r[0] + p.r[1]*p.r[1]);
          com[i+5][0] += r;
          com[i+5][1] += p.r[2];
