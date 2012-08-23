@@ -3,6 +3,7 @@
 import shutil
 import os
 import sys
+import glob
 
 def copyParameters(dirName):
    dirName = dirName+"/"
@@ -16,6 +17,10 @@ def makePostProcess():
 def runPostProcess(dirName,name,start,stop):
    currDir = os.getcwd()
    os.chdir(dirName)
+   
+   g = glob.glob("resultsGrid*")
+   endThere = int(g[-1][11:18])
+   if (endThere < stop): stop = endThere
    
    filename = "pbs-script"
    file = open(filename,"w")
