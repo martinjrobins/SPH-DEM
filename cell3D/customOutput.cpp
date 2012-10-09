@@ -5,7 +5,7 @@
 
 using namespace Nsph;
 
-inline void findCOMs(Cparticle &p, CglobalVars &g, vect* &com) {
+inline void findCOMs(Cparticle &p, CglobalVars &g, vector<vect> &com) {
    for (int i=0;i<5;i++) {
       if (len2(p.vhat)<pow(VREF/pow(10,i+1),2)) {
          const double r = sqrt(p.r[0]*p.r[0] + p.r[1]*p.r[1]);
@@ -25,12 +25,12 @@ inline void findCOMs(Cparticle &p, CglobalVars &g, vect* &com) {
 
 void CcustomOutput::calcOutput(int outstep,CcustomSim *custSim,Cio_data_vtk *io) {
    fo << data->globals.time;
-   //vector<vect> com(10);
-   vect *com = (vect *)malloc(sizeof(vect)*10);;
+   vector<vect> com(10);
+   //vect *com = (vect *)malloc(sizeof(vect)*10);;
    for (int i=0;i<10;i++) {
       com[i] = 0.0;
    }
-   data->traverse<vect*&,findCOMs,ifDem>(com);
+   data->traverse<vector<vect>&,findCOMs,ifDem>(com);
    for (int i=0;i<10;i++) {
       com[i][0] /= com[i][2];
       com[i][1] /= com[i][2];

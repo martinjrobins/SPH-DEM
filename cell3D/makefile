@@ -1,6 +1,6 @@
 CPPC = mpicxx
 CODEDIR = ..
-INCL = -I$(HOME)/usr/bin    -I. -I/opt/sw/gsl-1.10/include -I/opt/sw/vtk-5.0.3/include/vtk-5.0 -I/usr/include/vtk-5.2 -I/usr/include/vtk-5.4 -I$(HOME)/usr/include/vtk-5.8 -I$(HOME)/usr/include -I$(CODEDIR)
+INCL = -I$(HOME)/usr/bin    -I. -I/opt/sw/gsl-1.10/include -I/opt/sw/vtk-5.0.3/include/vtk-5.0 -I/usr/include/vtk-5.2 -I/usr/include/vtk-5.8 -I$(HOME)/usr/include/vtk-5.8 -I$(HOME)/usr/include -I$(CODEDIR)
 CPPFLAGS =  -Wno-deprecated $(INCL) -O3
 #CPPFLAGS =  -Wno-deprecated $(INCL) -g
 #VTKLIBS = -lvtkIO -lvtkzlib -lvtkDICOMParser -lvtkpng -lvtkjpeg -lvtktiff -lvtksys -lvtkFiltering -lvtkCommon -lvtkexpat -lpthread -ldl
