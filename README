@@ -1,3 +1,10 @@
+NOTE: I have mostly stopped supporting and updating SPH-DEM, in favor of its successor, Aboria. This is a general-purpose particle simulation code which can be used to quickly implement any particle-based algorithm, including SPH, DEM or SPH-DEM. Please see Aboria's github page for more details:
+
+<https://github.com/martinjrobins/Aboria>
+
+-----------------------------------
+
+
 Please see the bundled user manual (user_manual.pdf) for more detailed information.
 
 For Doxygen developer documentation (still under construction), point your browser here: http://www2.msm.ctw.utwente.nl/mrobins/SPH-DEM/doc/html/
